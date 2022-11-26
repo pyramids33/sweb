@@ -1,0 +1,9 @@
+{
+    "imports": {
+        "npm:id128": "npm:id128@^1.6.6",
+        "/deps/oak/": "https://deno.land/x/oak@v11.1.0/",
+        "/deps/std/": "https://deno.land/std@0.166.0/",
+        "/": "./",
+        "./": "./"
+    }
+}
