@@ -1,8 +1,12 @@
 {
     "imports": {
         "npm:id128": "npm:id128@^1.6.6",
+        "npm:tough-cookie": "npm:tough-cookie@^4.1.2",
+        "npm:bsv": "npm:bsv@2.0.10",
+        "npm:better-sqlite3": "npm:better-sqlite3@8.0.0",
         "/deps/oak/": "https://deno.land/x/oak@v11.1.0/",
         "/deps/std/": "https://deno.land/std@0.166.0/",
+        "/deps/sqlite3/": "https://deno.land/x/sqlite3@0.6.1/",
         "/": "./",
         "./": "./"
     }

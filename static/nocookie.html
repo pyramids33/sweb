@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>No Cookie</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="/favicon.ico">
+</head>
+<body>
+<div id="error" style="color:rgb(160, 0, 0);"></div>
+<script>
+var p = fetch('/.cookie', { method: 'GET' })
+.then(res => res.text())
+.then((data) => {
+    if (data === '1') {
+        location.reload();
+    } else {
+        document.getElementById('error').textContent = 'Please ensure cookies and javascript are enabled to use this site.';
+    }
+})
+.catch((error) => {
+    document.getElementById('error').textContent = 'An Error Occurred.';
+    console.log(error);
+});
+</script>
+</body>
+</html>
