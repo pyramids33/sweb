@@ -2,11 +2,11 @@ import { default as id128 } from "npm:id128";
 import { Context } from "/deps/oak/mod.ts";
 
 import mstime from "/mstime.ts";
-import { AppState } from "/site_appstate.ts";
+import { AppState } from "/appstate.ts";
+import { Next } from "/types.ts";
 
-type Next = () => Promise<unknown> | unknown;
 
-async function readWriteSession (ctx:Context<AppState>, next:Next) {
+async function readWriteSessionHeaders (ctx:Context<AppState>, next:Next) {
     ctx.state.session = JSON.parse((await ctx.cookies.get("session")) || '{}');
     await next();
     await ctx.cookies.set("session", JSON.stringify(ctx.state.session), {
@@ -57,7 +57,7 @@ async function checkSession (ctx:Context<AppState>, next:Next) {
 }
 
 export {
-    readWriteSession,
+    readWriteSessionHeaders,
     hasSession,
     checkSession
 }

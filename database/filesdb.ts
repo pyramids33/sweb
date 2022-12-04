@@ -30,9 +30,9 @@ export function getApi (db:Database) : FilesDbApi {
 
     const psSetFile = db.prepare(`
         insert into files (urlPath, hash, size, storagePath, mimeType) 
-        values ($urlPath, $hash, $size, $storagePath, $mimeType) 
+        values (:urlPath, :hash, :size, :storagePath, :mimeType) 
         on conflict (urlPath) do update 
-        set hash = $hash, size = $size, storagePath = $storagePath, mimeType = $mimeType; `);
+        set hash = :hash, size = :size, storagePath = :storagePath, mimeType = :mimeType; `);
 
     const psListFiles = db.prepare(`select urlPath, hash, size, storagePath, mimeType from files order by urlPath`);
     
@@ -43,10 +43,10 @@ export function getApi (db:Database) : FilesDbApi {
 
     const psRenameDir = db.prepare(`
         update files set 
-            urlPath = $newPath || substring(urlPath, length($oldPath)+1) 
-        where urlPath like $oldPath `);
+            urlPath = :newPath || substring(urlPath, length(:oldPath)+1) 
+        where urlPath like :oldPath `);
 
-    const psRenameFile = db.prepare(`update files set urlPath = $newPath where urlPath = $oldPath`)
+    const psRenameFile = db.prepare(`update files set urlPath = :newPath where urlPath = :oldPath`)
 
     const psDeleteAll = db.prepare('delete from files');
 

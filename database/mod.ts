@@ -14,7 +14,8 @@ export function openDb <A> (
 ) {    
     options = options ?? {};
     options.int64 = true;
-    console.log(filename,options)
+    // ! readonly mode produces SQLite API Misuse Error
+
     const db = new Database(filename, options);
     
     db.exec('pragma journal_mode = WAL');

@@ -1,8 +1,8 @@
 
 import * as path from "/deps/std/path/mod.ts";
 
-import { serveSite } from "/site_app.ts";
-import { AppState, Config } from "/site_appstate.ts";
+import { serveSite } from "/servesite.ts";
+import { AppState, Config } from "/appstate.ts";
 
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
 
@@ -12,16 +12,27 @@ const testConfig:Config = {
         hostname: '127.0.0.1'
     },
     cookieSecret: ['devsecret'],
-    sitePath: './test',
+    sitePath: './test/site2',
     env: 'dev',
-    staticPath: path.join(__dirname,'static')
+    staticPath: path.join(__dirname,'static'),
+    domain: 'swebhost.localdev',
+    mAPIEndpoints: [{
+        name: 'dev',
+        url: 'http://swebsite.localdev:3001/dev/tx',
+        extraHeaders: { 'Content-Type': 'application/json' } 
+    }]
 };
 
-const appState = new AppState(testConfig);
-const siteDb = appState.openSiteDb();
-const files = siteDb.files.listFiles();
+function onSignal () {
+    abortController.abort();
+}
 
-console.log(files);
+Deno.addSignalListener("SIGTERM", onSignal);
+Deno.addSignalListener("SIGINT", onSignal);
+Deno.addSignalListener("SIGHUP", onSignal);
 
 const abortController = new AbortController();
-await serveSite(testConfig, abortController.signal);
+const appState = new AppState(testConfig);
+await serveSite(appState, testConfig, abortController.signal);
+appState.close();
+console.log('server closed.');

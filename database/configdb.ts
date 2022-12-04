@@ -4,17 +4,9 @@ export interface ConfigDbApi {
     db:Database,
     set (config:Record<string,string>) : number,
     all () : Record<string,string>,
-    getOne(name:string[]) : string|undefined,
+    getOne(name:string) : string|undefined,
     get (...names:string[]) : Record<string,string>,
     remove (...names:string[]) : number,
-}
-
-export interface FileRow extends Record<string, unknown> {
-    urlPath:string, 
-    hash:string, 
-    size:number, 
-    storagePath:string, 
-    mimeType:string
 }
 
 export interface ConfigRow extends Record<string, string> {
@@ -29,8 +21,8 @@ export function initSchema (db:Database) {
 export function getApi (db:Database) : ConfigDbApi {
 
     const psSetConfig = db.prepare(`
-        insert into config (name,value) values($name, $value) 
-        on conflict do update set value = $value where name = $name`);
+        insert into config (name,value) values(:name, :value) 
+        on conflict do update set value = :value where name = :name`);
 
     const psGetAllConfig = db.prepare(`select name, value from config`);
     const psGetConfig = db.prepare(`select value from config where name = ?`);

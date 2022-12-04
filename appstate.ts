@@ -1,4 +1,7 @@
 import { ListenOptions } from "/deps/oak/mod.ts";
+import { delay } from "/deps/std/async/mod.ts";
+
+import { DatabaseOpenOptions } from "/deps/sqlite3/mod.ts";
 
 import { openDb } from "/database/mod.ts";
 
@@ -11,16 +14,24 @@ import type { SiteDbApi } from "/database/sitedb.ts";
 import SessionDbModule from "/database/sessiondb.ts";
 import type { SessionDbApi } from "/database/sessiondb.ts";
 
-import { SitePath } from "/site_path.ts";
+import { SitePath } from "/sitepath.ts";
 import mstime from "/mstime.ts";
-import sleep from "/sleep.ts";
 
+import { PaywallFile } from "/paywallfile.ts";
+
+export interface MapiEndPointInfo {
+    name:string,
+    url:string,
+    extraHeaders: Record<string,string>
+}
 export interface Config {
-    listenOptions: ListenOptions,
-    cookieSecret: string[],
-    env: string,
-    sitePath: string,
+    listenOptions: ListenOptions
+    cookieSecret: string[]
+    env: string
+    sitePath: string
     staticPath: string
+    domain: string 
+    mAPIEndpoints: MapiEndPointInfo[]
 }
 
 export interface Session {
@@ -43,11 +54,20 @@ export class AppState {
     #siteDb?: SiteDbApi
     #countersDb?: CountersDbApi
     #sessionDbCache: Record<string, SessionDbCacheEntry> = {};
+    #paywallFile?: PaywallFile;
+    #apiChannel: BroadcastChannel; 
 
     constructor (config:Config){
         this.session = {};
         this.config = config;
         this.sitePath = new SitePath(config.sitePath);
+        this.#apiChannel = new BroadcastChannel('apiChannel');
+        this.#apiChannel.addEventListener('message', (event) => {
+            const message:string = event.data; 
+            if (message.startsWith('paywallfile')) {
+                this.getPaywallFile(true);
+            }
+        });
     }
 
     openCountersDb () : CountersDbApi {
@@ -64,13 +84,27 @@ export class AppState {
         return this.#siteDb;
     }
 
-    openSessionDb (sessionId:string) : SessionDbApi {
+    getPaywallFile (forceReload=false) : PaywallFile {
+        if (this.#paywallFile === undefined || forceReload) {
+            const siteDb = this.openSiteDb();
+            const jsonString = siteDb.config.getOne('paywallFile');
+
+            if (jsonString) {
+                this.#paywallFile = PaywallFile.fromJSON(jsonString);
+            } else {
+                this.#paywallFile = new PaywallFile();
+            }
+        }
+        return this.#paywallFile;
+    }
+
+    openSessionDb (sessionId:string, options?:DatabaseOpenOptions) : SessionDbApi {
         if (this.#sessionDbCache[sessionId]) {
             this.#sessionDbCache[sessionId].lastAccess = Date.now();
             return this.#sessionDbCache[sessionId].db;
         }
 
-        const db = openDb<SessionDbApi>(SessionDbModule, this.sitePath.sessionDbPath(sessionId));
+        const db = openDb<SessionDbApi>(SessionDbModule, this.sitePath.sessionDbPath(sessionId), options);
         this.#sessionDbCache[sessionId] = { db, lastAccess: Date.now() };
         return db;
     }
@@ -90,7 +124,7 @@ export class AppState {
                 }
             }
 
-            await sleep(0);
+            await delay(0);
         }
     }
 
@@ -103,5 +137,14 @@ export class AppState {
     
         Deno.unrefTimer(setTimeout(() => 
             this.unCacheSessionDbs(abortSignal, delayMs).catch(console.error), Date.now()+delayMs));
+    }
+
+    close () {
+        this.#apiChannel.close();
+        this.#siteDb?.db.close();
+        this.#countersDb?.db.close();
+        for (const [_,value] of Object.entries(this.#sessionDbCache)) {
+            value.db.db.close();
+        }
     }
 }

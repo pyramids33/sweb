@@ -10,7 +10,7 @@
 <body>
 <div id="error" style="color:rgb(160, 0, 0);"></div>
 <script>
-var p = fetch('/.cookie', { method: 'GET' })
+var p = fetch('/.hassession', { method: 'GET' })
 .then(res => res.text())
 .then((data) => {
     if (data === '1') {
