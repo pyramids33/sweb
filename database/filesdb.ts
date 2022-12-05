@@ -15,7 +15,7 @@ export interface FileRow extends Record<string, unknown> {
     hash:string, 
     size:number, 
     storagePath:string, 
-    mimeType:string
+    mimeType?:string
 }
 
 export function initSchema (db:Database) {

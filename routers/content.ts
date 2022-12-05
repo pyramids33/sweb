@@ -1,4 +1,6 @@
 import * as path from "/deps/std/path/mod.ts";
+import * as mime from "/deps/std/media_types/mod.ts";
+
 import { Context, Router } from "/deps/oak/mod.ts";
 
 import { readWriteSessionHeaders, hasSession, checkSession } from "/middleware/session.ts";
@@ -32,6 +34,7 @@ export function getContentRouter () : Router<AppState> {
                 return;
             } else {
                 ctx.response.status = 404;
+                ctx.response.body = '404 - Page Not Found';
                 return;
             }
         }
@@ -50,8 +53,8 @@ export function getContentRouter () : Router<AppState> {
                 return;
             }
         }
-        
-        const mimeType = fileRow.mimeType;//|| mime.getType(file.urlPath);
+
+        const mimeType = fileRow.mimeType || mime.contentType(path.extname(fileRow.urlPath));
     
         if (mimeType) {
             ctx.response.headers.set('content-type', mimeType);

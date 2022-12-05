@@ -1,4 +1,5 @@
 import * as path from "/deps/std/path/mod.ts";
+import * as mime from "/deps/std/media_types/mod.ts";
 import { Context, Router } from "/deps/oak/mod.ts";
 import { bufferToHex, hexToBuffer } from "/deps/hextools/mod.ts";
 
@@ -68,7 +69,7 @@ export function getApiRouter () : Router<AppState> {
             urlPath: form.fields.urlPath,
             hash: form.fields.hash,
             size: fileSize,
-            mimeType: form.fields.mimeType||reqFile.contentType,
+            mimeType: form.fields.mimeType||mime.contentType(path.extname(form.fields.urlPath)),
             storagePath: path.basename(reqFile.filename)
         });
     

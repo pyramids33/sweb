@@ -6,10 +6,9 @@ if (Deno.args.length === 0) {
     Deno.exit();
 }
 
-const config:Config = JSON.parse(Deno.readTextFileSync(Deno.args[0]))
+const config:Config = JSON.parse(Deno.readTextFileSync(Deno.args[0]));
 
 const abortController = new AbortController();
-
 Deno.addSignalListener("SIGTERM", () => abortController.abort());
 Deno.addSignalListener("SIGINT", () => abortController.abort());
 Deno.addSignalListener("SIGHUP", () => abortController.abort());
