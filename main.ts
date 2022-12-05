@@ -1,38 +1,20 @@
-
-import * as path from "/deps/std/path/mod.ts";
-
 import { serveSite } from "/servesite.ts";
 import { AppState, Config } from "/appstate.ts";
 
-const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
-
-const testConfig:Config = {
-    listenOptions: {
-        port: 8098,
-        hostname: '127.0.0.1'
-    },
-    cookieSecret: ['devsecret'],
-    sitePath: './test/site2',
-    env: 'dev',
-    staticPath: path.join(__dirname,'static'),
-    domain: 'swebhost.localdev',
-    mAPIEndpoints: [{
-        name: 'dev',
-        url: 'http://swebsite.localdev:3001/dev/tx',
-        extraHeaders: { 'Content-Type': 'application/json' } 
-    }]
-};
-
-function onSignal () {
-    abortController.abort();
+if (Deno.args.length === 0) {
+    console.error('provide path to config file');
+    Deno.exit();
 }
 
-Deno.addSignalListener("SIGTERM", onSignal);
-Deno.addSignalListener("SIGINT", onSignal);
-Deno.addSignalListener("SIGHUP", onSignal);
+const config:Config = JSON.parse(Deno.readTextFileSync(Deno.args[0]))
 
 const abortController = new AbortController();
-const appState = new AppState(testConfig);
-await serveSite(appState, testConfig, abortController.signal);
+
+Deno.addSignalListener("SIGTERM", () => abortController.abort());
+Deno.addSignalListener("SIGINT", () => abortController.abort());
+Deno.addSignalListener("SIGHUP", () => abortController.abort());
+
+const appState = new AppState(config);
+await serveSite(appState, config, abortController.signal);
 appState.close();
 console.log('server closed.');
