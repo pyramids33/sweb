@@ -23,7 +23,8 @@ export function serveSite (appState:AppState, config: Config, abortSignal: Abort
     const contentRouter = getContentRouter();
     app.use(contentRouter.routes());
 
-    app.state.unCacheSessionDbs(abortSignal, mstime.mins(10)).catch(console.error);
+    app.state.runSessionDbUncacher(abortSignal, mstime.mins(10)).catch(console.error);
+    app.state.runPaywallFileReloader(mstime.secs(30));
 
     app.addEventListener("listen", () => console.log(`listening ${config.listenOptions.hostname}:${config.listenOptions.port}`))
 

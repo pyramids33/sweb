@@ -1,4 +1,3 @@
-import { ListenOptions } from "/deps/oak/mod.ts";
 import { delay } from "/deps/std/async/mod.ts";
 
 import { DatabaseOpenOptions } from "/deps/sqlite3/mod.ts";
@@ -18,27 +17,7 @@ import { SitePath } from "/sitepath.ts";
 import mstime from "/mstime.ts";
 
 import { PaywallFile } from "/paywallfile.ts";
-
-export interface MapiEndPointInfo {
-    name:string,
-    url:string,
-    extraHeaders: Record<string,string>
-}
-export interface Config {
-    listenOptions: ListenOptions
-    cookieSecret: string[]
-    env: string
-    sitePath: string
-    staticPath: string
-    domain: string 
-    mAPIEndpoints: MapiEndPointInfo[]
-}
-
-export interface Session {
-    sessionId?: string,
-    createTime?: number
-    visitTime?: number
-}
+import { Config, Session } from "/types.ts";
 
 interface SessionDbCacheEntry {
     db: SessionDbApi,
@@ -55,19 +34,11 @@ export class AppState {
     #countersDb?: CountersDbApi
     #sessionDbCache: Record<string, SessionDbCacheEntry> = {};
     #paywallFile?: PaywallFile;
-    #apiChannel: BroadcastChannel; 
 
     constructor (config:Config){
         this.session = {};
         this.config = config;
         this.sitePath = new SitePath(config.sitePath);
-        this.#apiChannel = new BroadcastChannel('apiChannel');
-        this.#apiChannel.addEventListener('message', (event) => {
-            const message:string = event.data; 
-            if (message.startsWith('paywallfile')) {
-                this.getPaywallFile(true);
-            }
-        });
     }
 
     openCountersDb () : CountersDbApi {
@@ -128,19 +99,21 @@ export class AppState {
         }
     }
 
-    async unCacheSessionDbs (abortSignal: AbortSignal, delayMs:number) {
+    async runSessionDbUncacher (abortSignal: AbortSignal, delayMs:number) {
         if (abortSignal.aborted) {
             return;
         }
     
         await this.#unCacheSessionDbs();
-    
-        Deno.unrefTimer(setTimeout(() => 
-            this.unCacheSessionDbs(abortSignal, delayMs).catch(console.error), Date.now()+delayMs));
+        Deno.unrefTimer(setTimeout(() => this.runSessionDbUncacher(abortSignal, delayMs).catch(console.error), delayMs));
+    }
+
+    runPaywallFileReloader (delayMs:number) {
+        this.getPaywallFile(true);
+        Deno.unrefTimer(setTimeout(() => this.runPaywallFileReloader(delayMs), delayMs));
     }
 
     close () {
-        this.#apiChannel.close();
         this.#siteDb?.db.close();
         this.#countersDb?.db.close();
         for (const [_,value] of Object.entries(this.#sessionDbCache)) {
