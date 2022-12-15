@@ -1,12 +1,12 @@
 import { Database } from "/deps/sqlite3/mod.ts";
 
 export interface ConfigDbApi {
-    db:Database,
-    set (config:Record<string,string>) : number,
-    all () : Record<string,string>,
-    getOne(name:string) : string|undefined,
-    get (...names:string[]) : Record<string,string>,
-    remove (...names:string[]) : number,
+    db:Database
+    set (config:Record<string,string>) : number
+    all () : Record<string,string>
+    getOne(name:string) : string|undefined
+    get (...names:string[]) : Record<string,string>
+    remove (...names:string[]) : number
 }
 
 export interface ConfigRow extends Record<string, string> {
@@ -25,6 +25,7 @@ export function getApi (db:Database) : ConfigDbApi {
         on conflict do update set value = :value where name = :name`);
 
     const psGetAllConfig = db.prepare(`select name, value from config`);
+
     const psGetConfig = db.prepare(`select value from config where name = ?`);
 
     const psDeleteConfig = db.prepare(`delete from config where name = ?`);
@@ -32,7 +33,7 @@ export function getApi (db:Database) : ConfigDbApi {
     return {
         db,
         set(config:Record<string,string>) {
-            let n = 0
+            let n = 0;
 
             db.transaction(function () {
                 for (const[ name, value ] of Object.entries(config)) {

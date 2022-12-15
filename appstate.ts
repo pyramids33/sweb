@@ -15,9 +15,12 @@ import type { SessionDbApi } from "/database/sessiondb.ts";
 
 import { SitePath } from "/sitepath.ts";
 import mstime from "/mstime.ts";
+import * as path from "/deps/std/path/mod.ts";
 
 import { PaywallFile } from "/paywallfile.ts";
-import { Config, Session } from "/types.ts";
+import { Config } from "/types.ts";
+import { SSECache } from "/ssecache.ts";
+import { Session } from "/middleware/session.ts";
 
 interface SessionDbCacheEntry {
     db: SessionDbApi,
@@ -26,24 +29,25 @@ interface SessionDbCacheEntry {
 
 export class AppState {
 
-    session: Session
+    session: Session = {}
     config: Config
     sitePath: SitePath
+    workerId = 0
 
+    sse:SSECache = new SSECache()
     #siteDb?: SiteDbApi
     #countersDb?: CountersDbApi
     #sessionDbCache: Record<string, SessionDbCacheEntry> = {};
     #paywallFile?: PaywallFile;
 
     constructor (config:Config){
-        this.session = {};
         this.config = config;
         this.sitePath = new SitePath(config.sitePath);
     }
 
     openCountersDb () : CountersDbApi {
         if (this.#countersDb === undefined) {
-            this.#countersDb = openDb<CountersDbApi>(CountersDbModule, this.sitePath.countersDbPath);
+            this.#countersDb = openDb<CountersDbApi>(CountersDbModule, this.sitePath.countersDbPath(this.workerId));
         }
         return this.#countersDb;
     }
@@ -53,20 +57,6 @@ export class AppState {
             this.#siteDb = openDb<SiteDbApi>(SiteDbModule, this.sitePath.siteDbPath);
         }
         return this.#siteDb;
-    }
-
-    getPaywallFile (forceReload=false) : PaywallFile {
-        if (this.#paywallFile === undefined || forceReload) {
-            const siteDb = this.openSiteDb();
-            const jsonString = siteDb.config.getOne('paywallFile');
-
-            if (jsonString) {
-                this.#paywallFile = PaywallFile.fromJSON(jsonString);
-            } else {
-                this.#paywallFile = new PaywallFile();
-            }
-        }
-        return this.#paywallFile;
     }
 
     openSessionDb (sessionId:string, options?:DatabaseOpenOptions) : SessionDbApi {
@@ -83,7 +73,7 @@ export class AppState {
     async #unCacheSessionDbs () {
 
         const keys = Object.keys(this.#sessionDbCache);
-        
+
         while (keys.length > 0) {
             const keyBatch = keys.splice(0, 1000);
 
@@ -103,12 +93,69 @@ export class AppState {
         if (abortSignal.aborted) {
             return;
         }
-    
+        console.log('M/ unCacheSessionDbs');
         await this.#unCacheSessionDbs();
         Deno.unrefTimer(setTimeout(() => this.runSessionDbUncacher(abortSignal, delayMs).catch(console.error), delayMs));
     }
 
+    async #copyFromSessionDbs (abortSignal:AbortSignal) {
+
+        const siteDb = this.openSiteDb();
+        const dirEntries = Deno.readDir(this.sitePath.sessionDbsPath);
+
+        for await (const dirEnt of dirEntries) {
+
+            if (dirEnt.isFile && dirEnt.name.endsWith('.db')) {
+
+                const dbFileName = path.join(this.sitePath.sessionDbsPath, dirEnt.name);
+
+                try {
+                    siteDb.attachSessionDb(dbFileName);
+                    siteDb.copyFromSessionDb();
+                    const sessionCheckIn = siteDb.getSessionDbCheckIn();
+                    siteDb.detachSessionDb();
+                    
+                    /* If the session has not checked in for 8 hours, the cookie must be expired */
+                    if (sessionCheckIn < mstime.hoursAgo(8)) {
+                        await Deno.remove(dbFileName);
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                }   
+            }
+
+            if (abortSignal.aborted) {
+                break;
+            }
+        }
+    }
+
+    async runSessionDbCopier (abortSignal: AbortSignal, delayMs:number) {
+        if (abortSignal.aborted) {
+            return;
+        }
+        console.log('M/ copyFromSessionDbs');
+        await this.#copyFromSessionDbs(abortSignal);
+        Deno.unrefTimer(setTimeout(() => this.runSessionDbCopier(abortSignal, delayMs).catch(console.error), delayMs));
+    }
+
+    getPaywallFile (forceReload=false) : PaywallFile {
+        if (this.#paywallFile === undefined || forceReload) {
+            const siteDb = this.openSiteDb();
+            const jsonString = siteDb.config.getOne('paywalls');
+
+            if (jsonString) {
+                this.#paywallFile = PaywallFile.fromJSON(jsonString);
+            } else {
+                this.#paywallFile = new PaywallFile();
+            }
+        }
+        return this.#paywallFile;
+    }
+
     runPaywallFileReloader (delayMs:number) {
+        console.log('M/ getPaywallFile');
         this.getPaywallFile(true);
         Deno.unrefTimer(setTimeout(() => this.runPaywallFileReloader(delayMs), delayMs));
     }
@@ -119,5 +166,7 @@ export class AppState {
         for (const [_,value] of Object.entries(this.#sessionDbCache)) {
             value.db.db.close();
         }
+        this.sse.close();
     }
 }
+

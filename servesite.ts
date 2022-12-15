@@ -1,12 +1,14 @@
 import { Application } from "/deps/oak/mod.ts";
 
-import { AppState, Config } from "/appstate.ts";
+import { AppState } from "/appstate.ts";
 import { getContentRouter } from "/routers/content.ts";
 import { getApiRouter } from "/routers/api.ts";
-import { getBip270Router } from "./routers/bip270.ts";
+import { getBip270Router } from "/routers/bip270.ts";
 import mstime from "/mstime.ts";
 
-export function serveSite (appState:AppState, config: Config, abortSignal: AbortSignal) {
+export function serveSite (appState:AppState, abortSignal: AbortSignal) {
+    
+    const config = appState.config;
 
     const app = new Application<AppState>({ 
         keys: config.cookieSecret, 
@@ -17,7 +19,7 @@ export function serveSite (appState:AppState, config: Config, abortSignal: Abort
     const apiRouter = getApiRouter();
     app.use(apiRouter.routes());
     
-    const bip270Router = getBip270Router(abortSignal);
+    const bip270Router = getBip270Router();
     app.use(bip270Router.routes());
 
     const contentRouter = getContentRouter();

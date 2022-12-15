@@ -6,6 +6,14 @@
 	],
 	"settings": {
 		"deno.enable": true,
-		"deno.importMap": "./import_map.json"
+		"deno.importMap": "./import_map.json",
+		"deno.inlayHints.enumMemberValues.enabled": false,
+		"deno.inlayHints.functionLikeReturnTypes.enabled": false,
+		"deno.inlayHints.parameterNames.enabled": "none",
+		"deno.inlayHints.parameterNames.suppressWhenArgumentMatchesName": false,
+		"deno.inlayHints.parameterTypes.enabled": false,
+		"deno.inlayHints.propertyDeclarationTypes.enabled": false,
+		"deno.inlayHints.variableTypes.enabled": false,
+		"deno.inlayHints.variableTypes.suppressWhenTypeMatchesName": false
 	}
 }

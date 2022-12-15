@@ -22,7 +22,7 @@ export function getApi (db:Database) : CountersDbApi {
     return {
         ...MetaDbModule.getApi(db),
         nextValue (name) {
-            return psIncrement.get<{counter:number}>(name)!['counter'];
+            return psIncrement.all(name)[0]['counter'];
         }
     }
 }

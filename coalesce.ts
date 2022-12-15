@@ -1,6 +1,6 @@
 
 // int, bigint, or string containing bigint
-export function bigInt (value:unknown, def?:bigint) : bigint|undefined {
+export function bigInt<T> (value:unknown, def:T) : bigint|T {
     try {
         if (typeof(value) === 'string') {
             return BigInt(value);
@@ -12,7 +12,7 @@ export function bigInt (value:unknown, def?:bigint) : bigint|undefined {
 }
 
 // safe int, or string containing safe int
-export function safeInt (value:unknown, def?:number, base?:number) : number|undefined {
+export function safeInt<T> (value:unknown, def:T, base?:number) : number|T {
     if (typeof(value) === 'number' && Number.isSafeInteger(value)) {
         return value;
     }
@@ -22,7 +22,7 @@ export function safeInt (value:unknown, def?:number, base?:number) : number|unde
     return def;
 }
 
-export function number (value:unknown, def?:number, base?:number) : number|undefined {
+export function number<T> (value:unknown, def:T, base?:number) : number|T {
     if (typeof(value) === 'number' && !isNaN(value)) {
         return value;
     }
@@ -33,8 +33,11 @@ export function number (value:unknown, def?:number, base?:number) : number|undef
 }
 
 // a string
-export function string (value:unknown, def?:string) : string|undefined {
+export function string<T> (value:unknown, def:T, maxlength?:number) : string|T {
     if (typeof(value) === 'string') {
+        if (maxlength) {
+            return value.slice(0,maxlength);
+        }
         return value;
     }
     return def;

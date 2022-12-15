@@ -19,7 +19,8 @@ export interface InvoiceRow extends Record<string, unknown> {
     paidAt?:number, 
     data?:string, 
     txid?:string, 
-    txbuf?:Uint8Array
+    txbuf?:Uint8Array,
+    read?:boolean
 }
 
 export interface InvoiceSpec {
@@ -28,10 +29,10 @@ export interface InvoiceSpec {
 }
 
 export interface InvoiceSpecOutput {
-    description: string
+    description?: string
     amount: number
     xpubstr: string
-    counter: number
+    drvpath: string
     script: string
 }
 
@@ -50,7 +51,8 @@ export function initSchema (db:Database) {
             paidAt int,
             data text,
             txid text,
-            txbuf blob);
+            txbuf blob,
+            read boolean);
     `).run();       
     db.prepare(`create index invoices_paidAt on invoices(paidAt);`).run();
 }
@@ -58,8 +60,8 @@ export function initSchema (db:Database) {
 export function getApi (db:Database) : InvoicesDbApi {
 
     const psAddInvoice = db.prepare(`
-        insert into invoices (ref, created, domain, urlPath, pwfHash, spec, subtotal, paymentMethod, paidAt, data, txid, txbuf)
-        values (:ref, :created, :domain, :urlPath, :pwfHash, :spec, :subtotal, :paymentMethod, :paidAt, :data, :txid, :txbuf) 
+        insert into invoices (ref, created, domain, urlPath, pwfHash, spec, subtotal, paymentMethod, paidAt, data, txid, txbuf, read)
+        values (:ref, :created, :domain, :urlPath, :pwfHash, :spec, :subtotal, :paymentMethod, :paidAt, :data, :txid, :txbuf, :read) 
         on conflict do nothing returning *`);
 
     const psInvoiceByRef = db.prepare(`select * from invoices where ref = ?`);
@@ -68,8 +70,16 @@ export function getApi (db:Database) : InvoicesDbApi {
 
     return {
         db,
-        addInvoice ({ ref, created, domain, urlPath, pwfHash, spec, subtotal, paymentMethod, paidAt, data, txid, txbuf }) {
-            return psAddInvoice.get({ ref, created, domain, urlPath, pwfHash, spec, subtotal, paymentMethod, paidAt, data, txid, txbuf });
+        addInvoice ({ ref, created, domain, urlPath, pwfHash, spec, subtotal, paymentMethod, paidAt, data, txid, txbuf, read }) {
+            return psAddInvoice.all<InvoiceRow>({
+                ref, created, domain, urlPath, pwfHash, spec, subtotal, 
+                paymentMethod: paymentMethod||null, 
+                paidAt: paidAt||null, 
+                data: data||null, 
+                txid: txid||null, 
+                txbuf: txbuf||null,
+                read: read||false
+            })[0];
         },
         invoiceByRef (ref) {
             return psInvoiceByRef.get(ref);

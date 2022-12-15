@@ -1,6 +1,6 @@
 import { default as id128 } from "npm:id128";
 import bsv from "npm:bsv";
-import { Context, Router, ServerSentEventTarget } from "/deps/oak/mod.ts";
+import { Context, Router } from "/deps/oak/mod.ts";
 import { hexToBuffer } from "/deps/hextools/mod.ts";
 
 import { checkSession } from "/middleware/session.ts";
@@ -8,6 +8,11 @@ import mstime from "/mstime.ts";
 import { Next } from "/types.ts";
 import { AppState } from "/appstate.ts";
 import { InvoiceSpec } from "/database/invoicesdb.ts";
+
+interface InvoiceSpecItem {
+    amount: number,
+    script: string
+}
 
 // https://github.com/moneybutton/bips/blob/master/bip-0270.mediawiki#PaymentRequest
 
@@ -22,11 +27,6 @@ async function allowCORS (ctx:Context, next:Next) {
     }
 
     await next();
-}
-
-interface InvoiceSpecItem {
-    amount: number,
-    script: string
 }
 
 export function validatePayment (invoiceSpec:InvoiceSpecItem[], tx:bsv.Transaction) : { error?: string } {
@@ -52,32 +52,36 @@ export function validatePayment (invoiceSpec:InvoiceSpecItem[], tx:bsv.Transacti
     return {};
 }
 
-export function getBip270Router (abortSignal:AbortSignal) : Router<AppState> {
-
-    const sseEvents:Record<string,ServerSentEventTarget> = {};
-    const sseChannel = new BroadcastChannel('invoicepayments');
-
-    sseChannel.addEventListener("message", (event) => {
-        const message:string = event.data; 
-        if (message.startsWith('PAID ')) {
-            const res = sseEvents[message.slice(5)];
-            res.dispatchMessage('paid');
-            res.close();
-        } else if (message === 'CLOSE') {
-            for (const res of Object.values(sseEvents)) {
-                res.close();
-            }
-        }
-    });
-    
-    abortSignal.addEventListener("abort", () => sseChannel.close());
+export function getBip270Router () : Router<AppState> {
 
     let endpointNum = 0;
 
     const router = new Router<AppState>();
 
+    router.get('/.bip270/inv/sse', checkSession, function (ctx:Context<AppState>) {
+        const query = Object.fromEntries(ctx.request.url.searchParams);
+        const sessionDb = ctx.state.openSessionDb(ctx.state.session.sessionId!, { create: false });
+        const invoice = sessionDb.invoiceByRef(query.ref);
+    
+        if (invoice === undefined || invoice.paidAt || (invoice.created < mstime.minsAgo(15))) {
+            ctx.response.status = 404;
+            return;
+        }
+
+        const key = ctx.state.session.sessionId! + ' ' + invoice.ref;
+        const target = ctx.sendEvents();
+
+        ctx.state.sse.addTarget(key, target);
+
+        if (invoice.paidAt !== undefined && invoice.paidAt !== null) {
+            // on iPhone, after switching to app and paying, the connection is closed and reopened.
+            // send update if already paid.
+            ctx.state.sse.onPayment(key);
+        }
+    });
+
     router.post('/.bip270/inv', checkSession, async function (ctx:Context<AppState>) {
-        const body = Object.fromEntries(await ctx.request.body({ type: "form" }).value);
+        const body = Object.fromEntries(await ctx.request.body({ type: 'form' }).value);
         const domain = ctx.request.url.hostname; // config
         const sessionId = ctx.state.session.sessionId!;
         const sessionDb = ctx.state.openSessionDb(sessionId);
@@ -88,7 +92,7 @@ export function getBip270Router (abortSignal:AbortSignal) : Router<AppState> {
         
         if (matchResult === undefined || sessionDb.accessCheck(matchResult.match, mstime.hoursAgo(6))) {
             ctx.response.status = 200;
-            ctx.response.type = "json";
+            ctx.response.type = 'json';
             ctx.response.body = { error: 'ACCESSIBLE' };
             return;
         }
@@ -101,33 +105,27 @@ export function getBip270Router (abortSignal:AbortSignal) : Router<AppState> {
         if (inv === undefined) {
             
             const countersDb = ctx.state.openCountersDb();
-            const counters:{ xpubstr:string, counter:number }[] = [];
+            const workerId = ctx.state.workerId;
+
+            const invoiceSpec:InvoiceSpec = { pattern: paywallSpec.pattern, outputs: [] };
 
             countersDb.db.transaction(function () {
                 for (const item of paywallSpec.outputs) {
-                    const xpubstr = paywallFile.xpubs[item.xpubname].toString();
+                    const { xpub, xpubstr } = paywallFile.xpubs[item.xpubname];
                     const counter = countersDb.nextValue(xpubstr);
-                    counters.push({ xpubstr, counter });
+                    const drvpath = `m/${workerId}/${counter}`;
+                    const pubKey = xpub.derive(drvpath).pubKey;
+                    const script = bsv.Address.fromPubKey(pubKey).toTxOutScript().toHex();
+
+                    invoiceSpec.outputs.push({ 
+                        description: item.description, 
+                        amount: item.amount, 
+                        xpubstr, 
+                        drvpath,
+                        script
+                    })
                 }
             })(null);
-
-            const invoiceSpec:InvoiceSpec = { 
-                pattern:paywallSpec.pattern, 
-                outputs: paywallSpec.outputs.map((specItem, i) => { 
-                    const counter = counters[i].counter;
-                    const xpubstr = counters[i].xpubstr;
-                    const xpub = paywallFile.xpubs[specItem.xpubname];
-                    const pubKey = xpub.deriveChild(0).deriveChild(counter).pubKey;
-                    const script = bsv.Address.fromPubKey(pubKey).toTxOutScript().toHex();
-                    return { 
-                        description: specItem.description, 
-                        amount: specItem.amount, 
-                        xpubstr, 
-                        counter,
-                        script
-                    }
-                })
-            }
 
             inv = sessionDb.addInvoice({ 
                 ref: id128.Ulid.generate().toCanonical(),
@@ -147,7 +145,7 @@ export function getBip270Router (abortSignal:AbortSignal) : Router<AppState> {
             return;
         }
 
-        const dataURL = 'bitcoin:?sv&r=' + encodeURIComponent(`https://${domain}/.bip270/inv/req?ref=${inv.ref}&token=${sessionId}`);
+        const dataURL = 'bitcoin:?sv&r=' + encodeURIComponent(`https://${domain}/.bip270/inv/req?ref=${inv.ref}&sessionId=${sessionId}`);
         
         ctx.response.status = 200;
         ctx.response.type = "json";
@@ -272,7 +270,13 @@ export function getBip270Router (abortSignal:AbortSignal) : Router<AppState> {
             || payload.resultDescription === '257 txn-already-known'
         ) {
             sessionDb.payInvoice(invoice.ref, Date.now(), 'bip270 ' + mAPIEndpoint.name, tx.id(), txbuf);
-            sseChannel.postMessage(`PAID ${body.sessionId} ${body.ref}`);
+
+            ctx.state.sse.onPayment(body.sessionId + ' ' + body.ref);
+            
+            if (self.postMessage) {
+                self.postMessage({ message: 'payment', target: body.sessionId + ' ' + body.ref });
+            }
+
         } else {
             ctx.response.status = 200;
             ctx.response.type = "json";
@@ -294,14 +298,14 @@ export function getBip270Router (abortSignal:AbortSignal) : Router<AppState> {
             return;
         }
 
-        const query = Object.fromEntries(ctx.request.url.searchParams)
-        
-        if (!query.sessionId || !id128.Ulid.isCanonical(query.sessionId)) {
+        const query = Object.fromEntries(ctx.request.url.searchParams);
+
+        if (!query.ref || !id128.Ulid.isCanonical(query.ref)) {
             ctx.response.status = 400;
             return;
         }
 
-        const sessionDb = ctx.state.openSessionDb(query.sessionId, { create: false });
+        const sessionDb = ctx.state.openSessionDb(ctx.state.session.sessionId!, { create: false });
         const invoice = sessionDb.invoiceByRef(query.ref);
 
         if (invoice === undefined) {
@@ -310,43 +314,16 @@ export function getBip270Router (abortSignal:AbortSignal) : Router<AppState> {
         }
 
         sessionDb.payInvoice(invoice.ref, Date.now(), 'devpay', undefined, undefined);
+
+        ctx.state.sse.onPayment(ctx.state.session.sessionId + ' ' + query.ref);
         
-        sseChannel.postMessage(`PAID ${query.sessionId} ${query.ref}`);
+        if (self.postMessage) {
+            self.postMessage({ message: 'payment', target: ctx.state.session.sessionId + ' ' + query.ref });
+        }
 
         ctx.response.status = 200;
         ctx.response.type = "json";
         ctx.response.body = {};
-    });
-
-    router.get('/.bip270/inv/sse', checkSession, async function (ctx:Context<AppState>) {
-        const query = Object.fromEntries(ctx.request.url.searchParams);
-        const sessionDb = ctx.state.openSessionDb(ctx.state.session.sessionId!, { create: false });
-        const invoice = sessionDb.invoiceByRef(query.ref);
-    
-        if (invoice === undefined || invoice.paidAt || (invoice.created < mstime.minsAgo(15))) {
-            ctx.response.status = 404;
-            return;
-        }
-
-        const target = ctx.sendEvents();
-
-        //target.close();
-
-        if (invoice.paidAt !== undefined && invoice.paidAt !== null) {
-            // on iPhone, after switching to app and paying, the connection is closed and reopened.
-            // send update if already paid.
-            target.dispatchMessage('paid');
-            await target.close();
-            return;
-        }
-    
-        target.addEventListener("close", (_evt) => {
-            console.log('sse close');
-            const key =`${ctx.state.session.sessionId!} ${invoice.ref}`;
-            delete sseEvents[key]; 
-        });
-
-        sseEvents[`${ctx.state.session.sessionId!} ${invoice.ref}`] = target;
     });
 
     return router;

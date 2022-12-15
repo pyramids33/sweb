@@ -25,10 +25,10 @@ export function getContentRouter () : Router<AppState> {
         const { sitePath, config } = ctx.state;
         const siteDb = ctx.state.openSiteDb();
 
-        let fileRow = siteDb.files.fileByUrlPath(ctx.request.url.pathname);
+        let fileRow = siteDb.files.fileRow(ctx.request.url.pathname);
         
         if (fileRow === undefined) {
-            fileRow = siteDb.files.fileByUrlPath(ctx.request.url.pathname + '/');
+            fileRow = siteDb.files.fileRow(ctx.request.url.pathname + '/');
             if (fileRow) {
                 ctx.response.redirect(ctx.request.url.pathname + '/');
                 return;

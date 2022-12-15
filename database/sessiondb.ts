@@ -58,7 +58,14 @@ export function getApi (db:Database) : SessionDbApi {
             return invoicesDbApi.addInvoice({ ref, created, domain, urlPath, pwfHash, spec, subtotal });
         },
         payInvoice(ref, paidAt, paymentMethod, txid, txbuf) {
-            return psPayInvoice.run({ ref, paidAt, paymentMethod, txid, txbuf });
+            return psPayInvoice.run({ 
+                ref, 
+                paidAt, 
+                data: null, 
+                paymentMethod: paymentMethod||null, 
+                txid: txid||null, 
+                txbuf: txbuf||null 
+            });
         },
         recentInvoiceByUrlPath (urlPath, expiry) {
             return psRecentInvoiceByUrlPath.get({ urlPath, expiry });

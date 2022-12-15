@@ -9,7 +9,9 @@ export interface MapiEndPointInfo {
 }
 
 export interface Config {
+    workerId:number
     listenOptions: ListenOptions
+    workers?: { workerId:number, port:number }[]
     cookieSecret: string[]
     env: string
     sitePath: string
@@ -20,8 +22,3 @@ export interface Config {
     mAPIEndpoints: MapiEndPointInfo[]
 }
 
-export interface Session {
-    sessionId?: string,
-    createTime?: number
-    visitTime?: number
-}

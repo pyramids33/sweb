@@ -5,9 +5,17 @@ import mstime from "/mstime.ts";
 import { AppState } from "/appstate.ts";
 import { Next } from "/types.ts";
 
+export interface Session {
+    sessionId?: string,
+    createTime?: number
+    visitTime?: number
+}
 
 async function readWriteSessionHeaders (ctx:Context<AppState>, next:Next) {
-    ctx.state.session = JSON.parse((await ctx.cookies.get("session")) || '{}');
+    const jsonString = await ctx.cookies.get("session");
+    if (jsonString) {
+        ctx.state.session = JSON.parse(jsonString);
+    }
     await next();
     await ctx.cookies.set("session", JSON.stringify(ctx.state.session), {
         maxAge: mstime.hours(7)/1000, // actually seconds, not ms

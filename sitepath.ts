@@ -7,14 +7,14 @@ export class SitePath {
     filesPath:string;
     sessionDbsPath:string;
     siteDbPath:string;
-    countersDbPath:string;
+    //countersDbPath:string;
 
     constructor (rootPath:string) {
         this.rootPath = rootPath;
         this.filesPath = path.join(rootPath, 'files');
         this.sessionDbsPath = path.join(rootPath, 'sessions');
         this.siteDbPath = path.join(rootPath, 'site.db');
-        this.countersDbPath = path.join(rootPath, 'counters.db');
+        //this.countersDbPath = path.join(rootPath, 'counters.db');
     }
 
     filePath (filePath:string) : string {
@@ -25,7 +25,11 @@ export class SitePath {
         return path.join(this.filesPath, filePath||'').slice(this.rootPath.length);
     }
 
-    sessionDbPath(sessionId:string) {
+    countersDbPath (workerId:number) {
+        return path.join(this.rootPath, `counters${workerId}.db`);
+    }
+
+    sessionDbPath (sessionId:string) {
         return path.join(this.sessionDbsPath, sessionId + '.db');
     }
 
