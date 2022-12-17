@@ -1,0 +1,4 @@
+#!/usr/bin/env -S deno -q run --allow-all --unstable 
+import { exec } from "/cliparser/context.ts";
+import { parser } from "/client/cli.ts";
+await exec(Deno.args.join(' '), parser).catch(console.error);

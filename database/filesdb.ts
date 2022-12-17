@@ -70,7 +70,7 @@ export function getApi (db:Database) : FilesDbApi {
         select name, urlPath, sum(size) as size, hash, mimeType, storagePath, sum(nfiles) as "count"
         from (
             select 
-                urlPath
+                urlPath,
                 case when slashPos > 0 then substr(suffix, 0, slashPos+1) else suffix end as name, 
                 size,
                 case when slashPos > 0 then null else hash end as hash,

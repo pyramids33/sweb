@@ -6,7 +6,7 @@
 	],
 	"settings": {
 		"deno.enable": true,
-		"deno.importMap": "./import_map.json",
+		"deno.config": "./deno.jsonc",
 		"deno.inlayHints.enumMemberValues.enabled": false,
 		"deno.inlayHints.functionLikeReturnTypes.enabled": false,
 		"deno.inlayHints.parameterNames.enabled": "none",
