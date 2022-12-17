@@ -210,7 +210,7 @@ function printHelp (ctx:Context, addHelpHelp=false) {
 
 export async function exec (input:string, parser:Parser) {
 
-    if (input.endsWith(' =') || input === '=') {
+    if (input.endsWith(' \t') || input === '\t') {
         try {
             input = input.slice(0, -1);
             const ctx = new Context(input, parser);
@@ -221,7 +221,7 @@ export async function exec (input:string, parser:Parser) {
         return;
     }
 
-    const helpSeq = ['?','--help','-h','/?'].find(x => x == input || input.endsWith(' '+x));
+    const helpSeq = [ '?', '--help', '-h', '/?' ].find(x => x == input || input.endsWith(' '+x));
 
     if (helpSeq) {
         try { 

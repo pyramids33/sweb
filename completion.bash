@@ -10,7 +10,7 @@
 
 _denosweb_completions()
 {
-  eval "$COMP_LINE ="
+  eval "$COMP_LINE $'\t'"
 }
 
 complete -C _denosweb_completions ./denosweb
