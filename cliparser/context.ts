@@ -195,6 +195,19 @@ export function parse (input:string, parser:Parser) {
     return ctx;
 }
 
+function printHelp (ctx:Context, addHelpHelp=false) {
+    const help = ctx.getHelp();
+
+    if (addHelpHelp) {
+        help.push(['?','place ? at the end of any command to show help']);
+    }
+
+    const columnWidth = help.reduce((p,c) => Math.max(p, c[0].length), 0) + 6;
+    const helpLines = help.map(y => `  ${y[0]}                              `.slice(0, columnWidth) + y[1]);
+    
+    console.log('help: \n' + helpLines.join('\n') + '\n');
+}
+
 export async function exec (input:string, parser:Parser) {
 
     if (input.endsWith(' =') || input === '=') {
@@ -215,17 +228,7 @@ export async function exec (input:string, parser:Parser) {
             input = input.slice(0, -helpSeq.length);
             const ctx = new Context(input, parser);
             ctx.parse();
-
-            const help = ctx.getHelp();
-
-            if (input === '') {
-                help.push(['?','place ? at the end of any command to show help']);
-            }
-
-            const columnWidth = help.reduce((p,c) => Math.max(p, c[0].length), 0) + 6;
-            const helpLines = help.map(y => `  ${y[0]}                              `.slice(0, columnWidth) + y[1]);
-            
-            console.log('help: \n' + helpLines.join('\n') + '\n');
+            printHelp(ctx, input === '');
         } catch (error) { 
             console.error('error: ' + error.message);
         }
@@ -246,8 +249,7 @@ export async function exec (input:string, parser:Parser) {
                 }
             }
 
-            const help = ctx.getHelp().map(y => '  ' + y.join('\t\t')).join('\n')
-            console.log('help: \n' + help + '\n');
+            printHelp(ctx, input === '');
         }
 
         return ctx;
