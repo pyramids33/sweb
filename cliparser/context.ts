@@ -208,13 +208,20 @@ export async function exec (input:string, parser:Parser) {
         return;
     }
 
-    if (input.endsWith(' ?') || input === '?') {
+    const helpSeq = ['?','--help','-h','/?'].find(x => x == input || input.endsWith(' '+x));
+
+    if (helpSeq) {
         try { 
-            input = input.slice(0, -1);
+            input = input.slice(0, -helpSeq.length);
             const ctx = new Context(input, parser);
             ctx.parse();
-            const help = ctx.getHelp().map(y => '  ' + y.join('\t\t')).join('\n')
-            console.log('help: \n' + help + '\n');
+
+            const help = ctx.getHelp();
+            help.push(['?','place ? at the end of any command to show help']);
+            const columnWidth = help.reduce((p,c) => Math.max(p, c[0].length), 0) + 6;
+            
+            const helpLines = help.map(y => `  ${y[0]}                              `.slice(0, columnWidth) + y[1]);
+            console.log('help: \n' + helpLines.join('\n') + '\n');
         } catch (error) { 
             console.error('error: ' + error.message);
         }
