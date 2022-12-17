@@ -217,10 +217,14 @@ export async function exec (input:string, parser:Parser) {
             ctx.parse();
 
             const help = ctx.getHelp();
-            help.push(['?','place ? at the end of any command to show help']);
+
+            if (input === '') {
+                help.push(['?','place ? at the end of any command to show help']);
+            }
+
             const columnWidth = help.reduce((p,c) => Math.max(p, c[0].length), 0) + 6;
-            
             const helpLines = help.map(y => `  ${y[0]}                              `.slice(0, columnWidth) + y[1]);
+            
             console.log('help: \n' + helpLines.join('\n') + '\n');
         } catch (error) { 
             console.error('error: ' + error.message);
