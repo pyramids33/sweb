@@ -14,6 +14,7 @@
 		"deno.inlayHints.parameterTypes.enabled": false,
 		"deno.inlayHints.propertyDeclarationTypes.enabled": false,
 		"deno.inlayHints.variableTypes.enabled": false,
-		"deno.inlayHints.variableTypes.suppressWhenTypeMatchesName": false
+		"deno.inlayHints.variableTypes.suppressWhenTypeMatchesName": false,
+		"deno.suggest.autoImports": false
 	}
 }

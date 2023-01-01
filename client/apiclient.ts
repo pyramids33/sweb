@@ -1,26 +1,27 @@
 import * as path from "/deps/std/path/mod.ts";
 import * as mime from "/deps/std/media_types/mod.ts";
-import { bufferToHex } from "/deps/hextools/mod.ts";
 
-import { trimstr } from "/trimstring.ts";
+import { trims } from "/lib/trims.ts";
+import { sha256hex } from "/lib/hash.ts";
 
-interface ApiClientSendOptions {
+export interface ApiClientSendOptions {
     onProgressFn?:() => void
     progressInterval?:number
-    abortSignal?:AbortSignal
 }
 
 class ApiClientBase {
 
     urlPrefix:string
     authKey:string
+    abortSignal?:AbortSignal
 
-    constructor (urlPrefix:string, authKey:string) {
-        this.urlPrefix = trimstr(urlPrefix, { suffix: '/' });
+    constructor (urlPrefix:string, authKey:string, abortSignal?:AbortSignal) {
+        this.urlPrefix = trims(urlPrefix, { suffix: '/' });
         this.authKey = authKey;
+        this.abortSignal = abortSignal;
     }
 
-    async postFormData (urlPath:string, args:Record<string, string|Blob> = {}, options:ApiClientSendOptions={}) {
+    async postFormData (urlPath:string, args:Record<string, string|Blob|undefined> = {}, _options:ApiClientSendOptions={}) {
         
         const destUrl = new URL(this.urlPrefix);
         destUrl.pathname = urlPath;
@@ -34,13 +35,13 @@ class ApiClientBase {
         }
 
         const res = await fetch(destUrl, { 
-            signal: options.abortSignal, 
+            signal: this.abortSignal, 
             headers: { 'x-authkey': this.authKey },
             method: 'POST', 
             body: formData
         });
-        
-        return await res.json();
+
+        return res;
     }
 }
 
@@ -57,12 +58,12 @@ class FilesApiClient {
         return this.client.postFormData('/.api/files/info', { urlPath });
     }
 
-    async upload (urlPath:string, storagePath:string, hash?:string, size?:number, mimeType?:string, onProgressFn = () => {}) {
+    async upload (cwdRelativePath:string, urlPath:string, hash?:string, size?:number, mimeType?:string, onProgressFn = () => {}) {
 
-        const blob = await Deno.readFile(storagePath);
+        const blob = await Deno.readFile(cwdRelativePath);
         
         if (hash === undefined) {
-            hash = bufferToHex(await crypto.subtle.digest('SHA-256', blob));
+            hash = sha256hex(blob);
         }
 
         if (size === undefined) {
@@ -92,8 +93,8 @@ class FilesApiClient {
         return this.client.postFormData('/.api/files/delete', { delete: deleteList });
     }
 
-    list (search:string, offset:number) {
-        return this.client.postFormData('/.api/files/list', { search, offset: offset.toString() });
+    list (search?:string, offset?:number) {
+        return this.client.postFormData('/.api/files/list', { search, offset: offset?.toString() });
     }
 }
 
@@ -133,8 +134,8 @@ export class ApiClient {
     files:FilesApiClient
     client:ApiClientBase
   
-    constructor (urlPrefix:string, authKey:string) {
-        this.client = new ApiClientBase(urlPrefix, authKey);
+    constructor (urlPrefix:string, authKey:string, abortSignal?:AbortSignal) {
+        this.client = new ApiClientBase(urlPrefix, authKey, abortSignal);
         this.files = new FilesApiClient(this.client);
         this.invoices = new InvoicesApiClient(this.client);
         this.paywalls = new PaywallsApiClient(this.client);
@@ -143,5 +144,4 @@ export class ApiClient {
     status () {
         return this.client.postFormData('/.api/status');
     }
-    
 }
