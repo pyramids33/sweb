@@ -15,6 +15,7 @@ function close () {
     } catch { /** */ }
 }
 
+
 function onMessage (event:MessageEvent) { 
     
     if (event.data.message === 'init') {
@@ -26,7 +27,12 @@ function onMessage (event:MessageEvent) {
         appState.runSessionDbUncacher(abortController.signal, mstime.mins(10)).catch(console.error);
         appState.runPaywallFileReloader(mstime.secs(30));
         appState.runXPubReloader(mstime.secs(30));
-        serveSite(appState, abortController.signal).then(close);
+        serveSite(appState, {
+            abortSignal: abortController.signal,
+            onListen: () => {
+                console.log(`listening ${config.listenOptions.hostname}:${config.listenOptions.port}`)
+            }
+        }).then(close);
         console.log('worker', workerId, 'started');
     }
 

@@ -56,7 +56,12 @@ if (import.meta.main) {
         appState.runSessionDbUncacher(abortController.signal, mstime.mins(10)).catch(console.error);
         appState.runPaywallFileReloader(mstime.secs(30));
         appState.runXPubReloader(mstime.secs(30));
-        await serveSite(appState, abortController.signal);
+        await serveSite(appState, {
+            abortSignal: abortController.signal,
+            onListen: () => {
+                console.log(`listening ${config.listenOptions.hostname}:${config.listenOptions.port}`)
+            }
+        });
         appState.close();
         console.log('M/ server closed');
     }

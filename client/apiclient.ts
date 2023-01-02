@@ -22,7 +22,6 @@ class ApiClientBase {
     }
 
     async postFormData (urlPath:string, args:Record<string, string|Blob|undefined> = {}, _options:ApiClientSendOptions={}) {
-        
         const destUrl = new URL(this.urlPrefix);
         destUrl.pathname = urlPath;
         

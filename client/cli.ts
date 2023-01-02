@@ -12,6 +12,7 @@ import { ChangeDetector, SiteMap } from "./sitemap.ts"
 import { openDb } from "/lib/database/mod.ts";
 import { tryStatSync } from "/lib/trystat.ts";
 import { PaywallFile, PaywallSpec, PaywallSpecOutput } from "/lib/paywallfile.ts";
+import { urlPrefix } from "../test/testconfig.ts";
 
 
 
@@ -72,6 +73,21 @@ function tryOpenDb (dbPath:string) {
         }
         throw error;
     }
+}
+
+function tryGetApiClient (siteDb:ClientSiteDbApi, abortSignal?:AbortSignal) {
+    const { siteUrl, authKey } = siteDb.getConfig();
+    try {
+        new URL(siteUrl!);
+    } catch {
+        console.error('Invalid or missing siteUrl. (run config command)');
+        Deno.exit(1);
+    }
+    if (authKey === undefined) {
+        console.error('Missing authKey. (run config command)');
+        Deno.exit(1);
+    }
+    return new ApiClient(urlPrefix, authKey, abortSignal);
 }
 
 async function check200JsonResponse (response:Response) {
@@ -266,8 +282,7 @@ mainCmd.command('reindex')
     }
 
     if (options.server) {
-        const { siteUrl, authKey } = siteDb.getConfig();
-        const apiClient = new ApiClient(siteUrl!, authKey!)
+        const apiClient = tryGetApiClient(siteDb);
         const response = await apiClient.files.list()
         const responseObj = await check200JsonResponse(response);
         
@@ -321,9 +336,7 @@ mainCmd.command('publish')
     await reIndexSiteMap(siteMap, siteDb);
 
     console.log('comparing...');
-
-    const { siteUrl, authKey } = siteDb.getConfig();
-    const apiClient = new ApiClient(siteUrl!, authKey!)
+    const apiClient = tryGetApiClient(siteDb);
     
     const { deletions, renames, uploads } = siteDb.files.compareLocalToServer();
 
@@ -379,8 +392,7 @@ mainCmd.command('getpayments')
 .action(async (_options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
     const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'));
-    const { siteUrl, authKey } = siteDb.getConfig();
-    const apiClient = new ApiClient(siteUrl!, authKey!)
+    const apiClient = tryGetApiClient(siteDb);
 
     let deleteList:string[] = [];
 

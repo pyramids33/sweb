@@ -1,8 +1,6 @@
 import { emptyDirSync } from '/deps/std/fs/mod.ts';
 import { assertEquals } from "/deps/std/testing/asserts.ts";
 import * as path from "/deps/std/path/mod.ts";
-//import { copy } from "/deps/std/streams/copy.ts"
-//import { readerFromStreamReader  } from "/deps/std/streams/reader_from_stream_reader.ts";
 
 import { sha256hex } from "/lib/hash.ts";
 import { serveSite } from "/server/servesite.ts";
@@ -11,8 +9,8 @@ import { testConfig, urlPrefix, authKey } from "/test/testconfig.ts";
 import { CookyFetch } from '/test/cookyfetch.ts';
 
 import { ApiClient } from '/client/apiclient.ts';
-import { bufferToHex } from "https://deno.land/x/hextools@v1.0.0/src/buffer_to_hex.ts";
 
+// create a empty directory for test data
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
 const testName = path.basename(path.fromFileUrl(import.meta.url));
 const testPath = path.join(__dirname, '..', 'temp', testName);
@@ -32,7 +30,7 @@ try {
 const siteDb = appState.openSiteDb();
 siteDb.meta.setValue('$.config.authKeyHash', sha256hex(authKey));
 
-const serverClosed = serveSite(appState, abortController.signal);
+const serverClosed = serveSite(appState, { abortSignal: abortController.signal });
 const cookyFetch = CookyFetch();
 const apiClient = new ApiClient(urlPrefix, authKey, abortController.signal);
 
@@ -76,7 +74,7 @@ try {
 
         const buf = (await res.arrayBuffer())
 
-        console.log(bufferToHex(buf.slice(-2)))
+        //console.log(bufferToHex(buf.slice(-2)))
 
         if (buf) {
             //assertEquals(buf.byteLength, 104046); 
@@ -90,5 +88,5 @@ try {
     abortController.abort();
     await serverClosed;
     appState.close();
-    console.log('closed');
 }
+console.log(testName, 'passed');

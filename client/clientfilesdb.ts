@@ -140,7 +140,7 @@ function getLocatedFilesDbApi (db:Database, location:string) : LocatedFilesDbApi
         deleteList (...urlPaths) {
             db.transaction(function () {
                 for (const urlPath of urlPaths) {
-                    psDeleteFileByUrlPath.run(location, urlPath);
+                    psDeleteFileByUrlPath.all(location, urlPath);
                 }
             })(null)
 

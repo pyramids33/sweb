@@ -8,7 +8,7 @@ export const testConfig:Config = {
         port: 8098,
         hostname: '127.0.0.1'
     },
-    workerId: 0,
+    workers: [],
     cookieSecret: ['devsecret'],
     sitePath: './test/site2',
     env: 'dev',
@@ -23,3 +23,4 @@ export const testConfig:Config = {
 
 export const urlPrefix = 'http://127.0.0.1:8098';
 export const authKey = 'aabbccddee';
+export const xPrv = 'xprv9s21ZrQH143K2cPPDuqeQ3CNmufwyPWU4uUv12cEDzzhnvfqztGjhk8KyLDNnCpK1rB5jPMR9zFiY94sfvHARxxyXSwFWLdLNLFTtRCTBKt';

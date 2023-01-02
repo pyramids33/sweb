@@ -2,25 +2,27 @@ import { copySync, emptyDirSync } from '/deps/std/fs/mod.ts';
 import { assertEquals } from '/deps/std/testing/asserts.ts';
 import * as path from '/deps/std/path/mod.ts';
 
-import { CommandRunner } from '../commandrunner.ts';
+import { CommandRunner } from '/test/commandrunner.ts';
+import { urlPrefix, authKey, xPrv } from "/test/testconfig.ts";
 
+// create a empty directory for test data
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
-const execPath = path.join(__dirname, '../../client/denosweb');
 const testName = path.basename(path.fromFileUrl(import.meta.url));
 const testPath = path.join(__dirname, '..', 'temp', testName);
-const sitePath = path.join(testPath, 'example');
-
 emptyDirSync(testPath);
+
+const sitePath = path.join(testPath, 'example');
 copySync(path.join(__dirname, '../data/example'), sitePath, { overwrite: true });
 
+const execPath = path.join(__dirname, '../swebcli');
 const cmd = new CommandRunner(testPath);
 
 await cmd.run(
     execPath, 'init', 
     '--sitePath', sitePath,
-    '--authKey', 'aabbccddee',
-    '--siteUrl', 'http://localhost:8098/',
-    '--xprv', 'xprv9s21ZrQH143K2cPPDuqeQ3CNmufwyPWU4uUv12cEDzzhnvfqztGjhk8KyLDNnCpK1rB5jPMR9zFiY94sfvHARxxyXSwFWLdLNLFTtRCTBKt'
+    '--authKey', authKey,
+    '--siteUrl', urlPrefix,
+    '--xprv', xPrv
 );
 
 const result = await cmd.run(execPath, 'sitemap', '--format','json', '--sitePath', sitePath);

@@ -112,7 +112,7 @@ export function getApi (db:Database) : FilesDbApi {
         },
 
         deleteFile (urlPath) {
-            return psDeleteFileByUrlPath.get<FileRow>(urlPath);
+            return psDeleteFileByUrlPath.all<FileRow>(urlPath)?.[0];
         },
 
         rename (oldPath, newPath) {

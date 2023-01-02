@@ -1,0 +1,3 @@
+#!/usr/bin/env -S deno -q run --allow-all --unstable 
+import { mainCmd } from "../client/cli.ts";
+mainCmd.parseAsync().catch(console.error);

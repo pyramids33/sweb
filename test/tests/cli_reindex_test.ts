@@ -4,16 +4,17 @@ import * as path from '/deps/std/path/mod.ts';
 
 import { CommandRunner } from '../commandrunner.ts';
 
+// create a empty directory for test data
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
-const execPath = path.join(__dirname, '../../client/denosweb');
 const testName = path.basename(path.fromFileUrl(import.meta.url));
 const testPath = path.join(__dirname, '..', 'temp', testName);
-const sitePath = path.join(testPath, 'example');
-
 emptyDirSync(testPath);
+
+const sitePath = path.join(testPath, 'example');
 copySync(path.join(__dirname, '../data/example'), sitePath, { overwrite: true });
 Deno.removeSync(path.join(sitePath, 'docs/index.html'));
 
+const execPath = path.join(__dirname, '../swebcli');
 const cmd = new CommandRunner(testPath);
 
 await cmd.run(

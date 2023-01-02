@@ -32,7 +32,7 @@ export function getContentRouter () : Router<AppState> {
         }
 
         let fileRow = siteDb.files.fileRow(ctx.request.url.pathname);
-        
+
         if (fileRow === undefined) {
             fileRow = siteDb.files.fileRow(ctx.request.url.pathname + '/');
             if (fileRow) {

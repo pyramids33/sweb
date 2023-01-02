@@ -2,6 +2,11 @@ import { mergeHeaders } from "/deps/std/http/cookie_map.ts";
 import tough from "npm:tough-cookie";
 const { Cookie, CookieJar } = tough;
 
+/**
+ * wrap fetch with a cookieJar so cookies will be saved and sent with request
+ * @param cookieJar an instance of cookieJar, defaults to new CookieJar()
+ * @returns Response
+ */
 export function CookyFetch (cookieJar = new CookieJar()) {
     return async function (input:string|URL|Request, init:RequestInit|undefined) : Promise<Response> {
 

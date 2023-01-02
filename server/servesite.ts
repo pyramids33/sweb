@@ -5,7 +5,12 @@ import { getContentRouter } from "/server/routers/content.ts";
 import { getApiRouter } from "/server/routers/api.ts";
 import { getBip270Router } from "/server/routers/bip270.ts";
 
-export function serveSite (appState:AppState, abortSignal: AbortSignal) {
+export interface serveSiteOptions {
+    abortSignal?: AbortSignal
+    onListen?: () => void
+}
+
+export function serveSite (appState:AppState, options:serveSiteOptions={}) {
     
     const config = appState.config;
 
@@ -24,12 +29,14 @@ export function serveSite (appState:AppState, abortSignal: AbortSignal) {
     const contentRouter = getContentRouter();
     app.use(contentRouter.routes());
 
-    app.addEventListener("listen", () => console.log(`listening ${config.listenOptions.hostname}:${config.listenOptions.port}`))
+    if (options.onListen){
+        app.addEventListener("listen", options.onListen);
+    }
 
     const serverClosed = app.listen({ 
         hostname: config.listenOptions.hostname, 
         port: config.listenOptions.port,
-        signal: abortSignal
+        signal: options.abortSignal
     });
 
     return serverClosed;
