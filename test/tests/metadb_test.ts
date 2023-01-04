@@ -1,10 +1,9 @@
 import { emptyDirSync } from '/deps/std/fs/mod.ts';
-import { assertEquals, assertStringIncludes } from '/deps/std/testing/asserts.ts';
+import { assertEquals } from '/deps/std/testing/asserts.ts';
 import * as path from '/deps/std/path/mod.ts';
-import { Database } from "/deps/sqlite3/mod.ts";
 
 import MetaDbModule from "/lib/database/metadb.ts";
-import type { MetaDbApi } from "/lib/database/metadb.ts";
+import { openDb } from '../../lib/database/mod.ts';
 
 // create a empty directory for test data
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
@@ -13,31 +12,37 @@ const testPath = path.join(__dirname, '..', 'temp', testName);
 emptyDirSync(testPath);
 
 const dbPath = path.join(testPath, 'sweb.db');
-const db = new Database(dbPath, { int64: true });
-db.exec('pragma journal_mode = WAL');
-MetaDbModule.initSchema(db);
-//const metaDb = MetaDbModule.getApi(db);
+const metaDb = openDb(MetaDbModule, dbPath);
 
-const q1 = db.prepare(`
-    select json_extract(jsondata,:q) as jsondata, 
-        json_type(jsondata,:q) as type 
-    from __meta where rowid = 1
-`);
+metaDb.setValue('$.config.v1', 'boop');
+metaDb.setValue('$.config.v2', 7);
+metaDb.setValue('$.config.v3', JSON.stringify('boop'));
+metaDb.setValue('$.config.v4', JSON.stringify({ v: 4}));
+metaDb.setValue('$.config.v5', { v: 5 });
 
-const q2 = db.prepare(`update __meta set jsondata = json_set(jsondata, ?, ?) where rowid = 1`);
-const q3 = db.prepare(`update __meta set jsondata = json_patch(jsondata, ?) where rowid = 1`);
+const v1 = metaDb.getValue('$.config.v1') as string;
+assertEquals(v1, 'boop');
 
-q2.run('$.config.boop1', 'boopboop');
-q2.run('$.config.boop2', JSON.stringify('boopboop'));
-q2.run('$.config.boop3', JSON.stringify({x:7}));
-q2.run('$.config.boop4', 7);
+const v2 = metaDb.getValue('$.config.v2') as number;
+assertEquals(v2, 7);
 
-q3.run(JSON.stringify({ 'config': {'boop5': { 'x': 7 }}}));
+const v3 = metaDb.getValue('$.config.v3') as string;
+assertEquals(v3, '"boop"');
 
-console.log(q1.all({ q: '$.config.boop1' }));
-console.log(q1.all({ q: '$.config.boop2'}));
-console.log(q1.all({ q: '$.config.boop3'}));
-console.log(q1.all({ q: '$.config.boop4'}));
-console.log(q1.all({ q: '$.config' }));
+const v4 = metaDb.getValue('$.config.v4') as string;
+assertEquals(v4, '{"v":4}');
+
+const v5 = metaDb.getValue('$.config.v5') as Record<string,unknown>;
+assertEquals(v5, { "v":5 });
+
+const cfg = metaDb.getValue('$.config') as Record<string,unknown>;
+
+assertEquals(cfg, { 
+    v1: "boop", 
+    v2: 7, 
+    v3: '"boop"', 
+    v4: '{"v":4}', 
+    v5: { v: 5 } 
+});
 
 console.log(testName, 'passed');

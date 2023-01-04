@@ -21,14 +21,19 @@ import { Config } from "/server/types.ts";
 import { SSECache } from "/server/ssecache.ts";
 import { Session } from "/server/middleware/session.ts";
 
+
 interface SessionDbCacheEntry {
     db: SessionDbApi,
     lastAccess: number
 }
 
+export interface RequestState {
+    app?: AppState
+    session?: Session
+}
+
 export class AppState {
 
-    session: Session = {}
     config: Config
     sitePath: SitePath
     workerId = 0
@@ -52,8 +57,11 @@ export class AppState {
         return this.#countersDb;
     }
 
-    openSiteDb () : SiteDbApi {
-        if (this.#siteDb === undefined) {
+    openSiteDb (forceReload=false) : SiteDbApi {
+        if (this.#siteDb === undefined || forceReload) {
+            if (forceReload && this.#siteDb) {
+                this.#siteDb.db.close();
+            }
             this.#siteDb = openDb<SiteDbApi>(SiteDbModule, this.sitePath.siteDbPath);
         }
         return this.#siteDb;
@@ -65,12 +73,12 @@ export class AppState {
             return this.#sessionDbCache[sessionId].db;
         }
 
-        const db = openDb<SessionDbApi>(SessionDbModule, this.sitePath.sessionDbPath(sessionId), options);
+        const db = openDb(SessionDbModule, this.sitePath.sessionDbPath(sessionId), options);
         this.#sessionDbCache[sessionId] = { db, lastAccess: Date.now() };
         return db;
     }
 
-    async #unCacheSessionDbs () {
+    async unCacheSessionDbs () {
 
         const keys = Object.keys(this.#sessionDbCache);
 
@@ -93,30 +101,30 @@ export class AppState {
         if (abortSignal.aborted) {
             return;
         }
-        await this.#unCacheSessionDbs();
+        await this.unCacheSessionDbs();
         Deno.unrefTimer(setTimeout(() => this.runSessionDbUncacher(abortSignal, delayMs).catch(console.error), delayMs));
     }
 
-    async #copyFromSessionDbs (abortSignal:AbortSignal) {
+    async copyFromSessionDbs (abortSignal:AbortSignal) {
 
-        const siteDb = this.openSiteDb();
         const dirEntries = Deno.readDir(this.sitePath.sessionDbsPath);
 
         for await (const dirEnt of dirEntries) {
 
             if (dirEnt.isFile && dirEnt.name.endsWith('.db')) {
 
-                const dbFileName = path.join(this.sitePath.sessionDbsPath, dirEnt.name);
+                const sessionDbFileName = path.join(this.sitePath.sessionDbsPath, dirEnt.name);
 
                 try {
-                    siteDb.attachSessionDb(dbFileName);
+                    const siteDb = openDb(SiteDbModule, this.sitePath.siteDbPath, { create: false });
+                    siteDb.attachSessionDb(sessionDbFileName);
                     siteDb.copyFromSessionDb();
                     const sessionCheckIn = siteDb.getSessionDbCheckIn();
-                    siteDb.detachSessionDb();
-                    
+                    siteDb.db.close();
+
                     /* If the session has not checked in for 8 hours, the cookie must be expired */
-                    if (sessionCheckIn < mstime.hoursAgo(8)) {
-                        await Deno.remove(dbFileName);
+                    if (sessionCheckIn && sessionCheckIn < mstime.hoursAgo(8)) {
+                        await Deno.remove(sessionDbFileName);
                     }
 
                 } catch (error) {
@@ -128,13 +136,17 @@ export class AppState {
                 break;
             }
         }
+
+        // reopen so it picks up the new records, otherwise getting empty list
+        this.openSiteDb(true);
+
     }
 
     async runSessionDbCopier (abortSignal: AbortSignal, delayMs:number) {
         if (abortSignal.aborted) {
             return;
         }
-        await this.#copyFromSessionDbs(abortSignal);
+        await this.copyFromSessionDbs(abortSignal);
         Deno.unrefTimer(setTimeout(() => this.runSessionDbCopier(abortSignal, delayMs).catch(console.error), delayMs));
     }
 

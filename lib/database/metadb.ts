@@ -1,4 +1,4 @@
-import { BindValue, Database } from "/deps/sqlite3/mod.ts";
+import { Database } from "/deps/sqlite3/mod.ts";
 
 export interface MetaRow extends Record<string, unknown> {
     version: string 
@@ -21,7 +21,7 @@ function initSchema (db:Database) {
 
 function getApi (db:Database) : MetaDbApi {
     const psGetMetaRow = db.prepare('select * from __meta where rowid = 1');
-    const psSetJsonValue = db.prepare(`update __meta set jsondata = json_set(jsondata, ?, ?) where rowid = 1`);
+    const psSetJsonValue = db.prepare(`update __meta set jsondata = json_set(jsondata, ?, json(?)) where rowid = 1`);
     const psGetJsonValue = db.prepare(`
         select json_extract(jsondata,:q) as jsondata, 
             json_type(jsondata,:q) as type 
@@ -41,19 +41,17 @@ function getApi (db:Database) : MetaDbApi {
                 return undefined;
             }
 
-            const type = row?.type;
-
-            if (type === 'object') {
+            if (row?.type === 'object') {
                 return JSON.parse(value);
             }
 
             return value;
         },
-        setValue (jsonPath:string, value:BindValue) {
+        setValue (jsonPath:string, value:unknown) {
             if (value === undefined || value === null) {
                 return psSetJsonValue.run(jsonPath, null);
             }
-            return psSetJsonValue.run(jsonPath, value);
+            return psSetJsonValue.run(jsonPath, JSON.stringify(value));
         },
         removeValue (jsonPath:string) {
             return psRemoveJsonValue.run(jsonPath);

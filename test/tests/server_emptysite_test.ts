@@ -30,31 +30,36 @@ const cookyFetch = CookyFetch();
 
 try {
     {
-        const res = await fetch(urlPrefix+'/.status', { signal: abortController.signal, keepalive: false });
+        const res = await fetch(urlPrefix+'/.status', { signal: abortController.signal });
         assertEquals(res.status, 200);
 
         const body = await res.text();
         assertEquals(body, 'OK');
     }
     {  
-        const res = await fetch(urlPrefix+'/.hassession', { signal: abortController.signal });
+        const res = await cookyFetch(urlPrefix+'/.hassession', { signal: abortController.signal });
         assertEquals(res.status, 200);
 
         const body = await res.text();
         assertEquals(body, '0');
     }
 
-    const nonExistantFileUrl = urlPrefix+'/nonexistantfile.txt';
-
     {   
-        const res = await cookyFetch(nonExistantFileUrl, { signal: abortController.signal });
+        const res = await cookyFetch(urlPrefix+'/nonexistantfile.txt', { signal: abortController.signal });
         assertEquals(res.status, 200);
 
         const body = await res.text();
         assertEquals(body.includes('No Cookie'), true);
     }
     {
-        const res = await cookyFetch(nonExistantFileUrl, { signal: abortController.signal });
+        const res = await cookyFetch(urlPrefix+'/nonexistantfile.txt', { signal: abortController.signal });
+        assertEquals(res.status, 404);
+
+        const body = await res.text();
+        assertEquals(body, '404 - Page Not Found');
+    }
+    {
+        const res = await cookyFetch(urlPrefix+'/nonexistantfile2.txt', { signal: abortController.signal });
         assertEquals(res.status, 404);
 
         const body = await res.text();

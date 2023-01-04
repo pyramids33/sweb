@@ -17,7 +17,7 @@ export interface SiteDbApi {
     meta:MetaDbApi
     files:FilesDbApi 
     invoices:InvoicesDbApi
-    getNext1000Invoices():InvoiceRow[]
+    getNext1000Invoices(afterRef:string):InvoiceRow[]
     deleteByRefList(refs:string[]):void
     attachSessionDb(dbFileName:string):void
     copyFromSessionDb():void
@@ -33,7 +33,7 @@ export function initSchema (db:Database) {
 
 export function getApi (db:Database) : SiteDbApi {
     
-    const psNext1000Invoices = db.prepare(`select * from invoices order by ref limit 1000`);
+    const psNext1000Invoices = db.prepare(`select * from invoices where ref > ? order by ref limit 1000`);
 
     return {
         db,
@@ -41,8 +41,8 @@ export function getApi (db:Database) : SiteDbApi {
         files: FilesDbModule.getApi(db),
         invoices: InvoicesDbModule.getApi(db),
         
-        getNext1000Invoices () : InvoiceRow[] {
-            return psNext1000Invoices.all();
+        getNext1000Invoices (afterRef = '') : InvoiceRow[] {
+            return psNext1000Invoices.all(afterRef);
         },
         deleteByRefList (refs:string[]) {
             const refCSV = refs.filter(x => id128.Ulid.isCanonical(x)).map(x => `'${x}'`).join(',');
@@ -56,7 +56,7 @@ export function getApi (db:Database) : SiteDbApi {
         copyFromSessionDb () { 
             // copy the paid and expired inv to main db
             db.prepare(`
-                insert or ignore into main.invoices (
+                insert into main.invoices (
                     ref,created,domain,urlPath,pwfHash,spec,subtotal,paymentMethod,paidAt,txid,txbuf,data,read)
                 select ref,created,domain,urlPath,pwfHash,spec,subtotal,paymentMethod,paidAt,txid,txbuf,data,read
                 from sessiondb.invoices
@@ -67,7 +67,7 @@ export function getApi (db:Database) : SiteDbApi {
             db.prepare(`update sessiondb.invoices set read = 1 where ref in (select ref from main.invoices);`).run();
         },
         getSessionDbCheckIn () {
-            return db.prepare(`select date from sessiondb.checkin where rowid = 1`).all()[0].checkin;
+            return db.prepare(`select date from sessiondb.checkin where rowid = 1`).all()[0]?.checkin;
         },
         detachSessionDb () {
             db.prepare(`detach database sessiondb;`).run();

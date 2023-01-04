@@ -77,8 +77,8 @@ try {
         //console.log(bufferToHex(buf.slice(-2)))
 
         if (buf) {
-            //assertEquals(buf.byteLength, 104046); 
-            assertEquals(sha256hex(buf.slice(0,-2)), 'ff831c52eddc18746f40fbfcb85aaf1e9bde04634d0062683ee1fc29935af49e');
+            assertEquals(buf.byteLength, 104046); 
+            assertEquals(sha256hex(buf), 'ff831c52eddc18746f40fbfcb85aaf1e9bde04634d0062683ee1fc29935af49e');
         }
     }
 

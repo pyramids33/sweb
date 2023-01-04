@@ -5,9 +5,9 @@ import { hexToBuffer } from "/deps/hextools/mod.ts";
 
 import mstime from "/lib/mstime.ts";
 
-import { checkSession } from "/server/middleware/session.ts";
+import { checkSession, readWriteSessionHeaders } from "/server/middleware/session.ts";
 import { Next } from "/server/types.ts";
-import { AppState } from "/server/appstate.ts";
+import { RequestState } from "/server/appstate.ts";
 import { InvoiceSpec } from "/server/database/invoicesdb.ts";
 
 interface InvoiceSpecItem {
@@ -53,15 +53,19 @@ export function validatePayment (invoiceSpec:InvoiceSpecItem[], tx:bsv.Transacti
     return {};
 }
 
-export function getBip270Router () : Router<AppState> {
+export function getBip270Router () : Router<RequestState> {
 
     let endpointNum = 0;
 
-    const router = new Router<AppState>();
-
-    router.get('/.bip270/inv/sse', checkSession, function (ctx:Context<AppState>) {
+    const router = new Router<RequestState>();
+    
+    router.use(readWriteSessionHeaders);
+    
+    router.get('/.bip270/inv/sse', checkSession, function (ctx:Context<RequestState>) {
+        const session = ctx.state.session!;
+        const app = ctx.state.app!;
         const query = Object.fromEntries(ctx.request.url.searchParams);
-        const sessionDb = ctx.state.openSessionDb(ctx.state.session.sessionId!, { create: false });
+        const sessionDb = app.openSessionDb(session.sessionId!, { create: false });
         const invoice = sessionDb.invoiceByRef(query.ref);
     
         if (invoice === undefined || invoice.paidAt || (invoice.created < mstime.minsAgo(15))) {
@@ -69,26 +73,30 @@ export function getBip270Router () : Router<AppState> {
             return;
         }
 
-        const key = ctx.state.session.sessionId! + ' ' + invoice.ref;
+        const key = session.sessionId! + ' ' + invoice.ref;
         const target = ctx.sendEvents();
 
-        ctx.state.sse.addTarget(key, target);
+        app.sse.addTarget(key, target);
 
         if (invoice.paidAt !== undefined && invoice.paidAt !== null) {
             // on iPhone, after switching to app and paying, the connection is closed and reopened.
             // send update if already paid.
-            ctx.state.sse.onPayment(key);
+            app.sse.onPayment(key);
         }
     });
 
-    router.post('/.bip270/inv', checkSession, async function (ctx:Context<AppState>) {
+    router.post('/.bip270/inv', checkSession, async function (ctx:Context<RequestState>) {
+        const session = ctx.state.session!;
+        const app = ctx.state.app!;
         const body = Object.fromEntries(await ctx.request.body({ type: 'form' }).value);
         const domain = ctx.request.url.hostname; // config
-        const sessionId = ctx.state.session.sessionId!;
-        const sessionDb = ctx.state.openSessionDb(sessionId);
+        const sessionId = session.sessionId!;
+        const sessionDb = app.openSessionDb(sessionId);
+
+        //console.log(sessionId)
 
         // check paywall
-        const paywallFile = await ctx.state.getPaywallFile();
+        const paywallFile = await app.getPaywallFile();
         const matchResult = paywallFile.matchUrl(body.urlPath);
         
         if (matchResult === undefined || sessionDb.accessCheck(matchResult.match, mstime.hoursAgo(6))) {
@@ -99,17 +107,17 @@ export function getBip270Router () : Router<AppState> {
         }
 
         const paywallPath = matchResult.match;
-        const paywallSpec = matchResult.paywall;
+        const paywallSpec = matchResult.spec;
         
         let inv = sessionDb.recentInvoiceByUrlPath(paywallPath, mstime.minsAgo(5));
         
         if (inv === undefined) {
             
-            const countersDb = ctx.state.openCountersDb();
-            const workerId = ctx.state.workerId;
+            const countersDb = app.openCountersDb();
+            const workerId = app.workerId;
 
-            const invoiceSpec:InvoiceSpec = { pattern: paywallSpec.pattern, outputs: [] };
-            const xpub = await ctx.state.getBip32();
+            const invoiceSpec:InvoiceSpec = { pattern: matchResult.pattern, outputs: [] };
+            const xpub = await app.getXPub();
             const xpubstr = xpub.toString()
 
             countersDb.db.transaction(function () {
@@ -161,7 +169,8 @@ export function getBip270Router () : Router<AppState> {
     });
 
     router.options('/.bip270/inv/req', allowCORS);
-    router.get('/.bip270/inv/req', allowCORS, function (ctx:Context<AppState>) {
+    router.get('/.bip270/inv/req', allowCORS, function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
         const domain = ctx.request.url.hostname; // config
         const query = Object.fromEntries(ctx.request.url.searchParams)
         
@@ -170,7 +179,7 @@ export function getBip270Router () : Router<AppState> {
             return;
         }
 
-        const sessionDb = ctx.state.openSessionDb(query.sessionId, { create: false });
+        const sessionDb = app.openSessionDb(query.sessionId, { create: false });
 
         const invoice = sessionDb.invoiceByRef(query.ref);
     
@@ -179,7 +188,8 @@ export function getBip270Router () : Router<AppState> {
             return;
         }
 
-        const outputs = JSON.parse(invoice.spec).map((item:InvoiceSpecItem) => { return { script: item.script, amount: item.amount }});
+        const invSpec:InvoiceSpec = JSON.parse(invoice.spec);
+        const outputs = invSpec.outputs.map((item:InvoiceSpecItem) => { return { script: item.script, amount: item.amount }});
 
         const paymentRequest = {
             network: 'bitcoin',
@@ -198,8 +208,9 @@ export function getBip270Router () : Router<AppState> {
 
     router.options('/.bip270/inv/pay', allowCORS);
 
-    router.post('/.bip270/inv/pay', allowCORS, async function (ctx:Context<AppState>) {
-        const config = ctx.state.config;
+    router.post('/.bip270/inv/pay', allowCORS, async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
+        const config = app.config;
         const body = Object.fromEntries(await ctx.request.body({ type: "form" }).value);
         
         if (!body.sessionId || !id128.Ulid.isCanonical(body.sessionId)) {
@@ -207,7 +218,7 @@ export function getBip270Router () : Router<AppState> {
             return;
         }
 
-        const sessionDb = ctx.state.openSessionDb(body.sessionId, { create: false });
+        const sessionDb = app.openSessionDb(body.sessionId, { create: false });
 
         const invoice = sessionDb.invoiceByRef(body.ref);
     
@@ -273,7 +284,7 @@ export function getBip270Router () : Router<AppState> {
         ) {
             sessionDb.payInvoice(invoice.ref, Date.now(), 'bip270 ' + mAPIEndpoint.name, tx.id(), txbuf);
 
-            ctx.state.sse.onPayment(body.sessionId + ' ' + body.ref);
+            app.sse.onPayment(body.sessionId + ' ' + body.ref);
             
             if (self.postMessage) {
                 self.postMessage({ message: 'payment', target: body.sessionId + ' ' + body.ref });
@@ -292,8 +303,10 @@ export function getBip270Router () : Router<AppState> {
         return;
     });
 
-    router.get('/.bip270/inv/devpay', checkSession, function (ctx:Context<AppState>) {
-        const config = ctx.state.config;
+    router.get('/.bip270/inv/devpay', checkSession, function (ctx:Context<RequestState>) {
+        const session = ctx.state.session!;
+        const app = ctx.state.app!;
+        const config = app.config;
 
         if (config.env !== 'dev') {
             ctx.response.status = 404;
@@ -307,20 +320,20 @@ export function getBip270Router () : Router<AppState> {
             return;
         }
 
-        const sessionDb = ctx.state.openSessionDb(ctx.state.session.sessionId!, { create: false });
+        const sessionDb = app.openSessionDb(session.sessionId!, { create: false });
         const invoice = sessionDb.invoiceByRef(query.ref);
 
         if (invoice === undefined) {
             ctx.response.status = 404;
             return;
         }
-
+        
         sessionDb.payInvoice(invoice.ref, Date.now(), 'devpay', undefined, undefined);
 
-        ctx.state.sse.onPayment(ctx.state.session.sessionId + ' ' + query.ref);
+        app.sse.onPayment(session.sessionId + ' ' + query.ref);
         
         if (self.postMessage) {
-            self.postMessage({ message: 'payment', target: ctx.state.session.sessionId + ' ' + query.ref });
+            self.postMessage({ message: 'payment', target: session.sessionId + ' ' + query.ref });
         }
 
         ctx.response.status = 200;

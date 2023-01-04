@@ -1,23 +1,29 @@
-import { Application } from "/deps/oak/mod.ts";
+import { Application, Context } from "/deps/oak/mod.ts";
 
-import { AppState } from "/server/appstate.ts";
+import { AppState, RequestState } from "/server/appstate.ts";
 import { getContentRouter } from "/server/routers/content.ts";
 import { getApiRouter } from "/server/routers/api.ts";
 import { getBip270Router } from "/server/routers/bip270.ts";
+import { Next } from "./types.ts";
 
 export interface serveSiteOptions {
     abortSignal?: AbortSignal
     onListen?: () => void
 }
 
+
 export function serveSite (appState:AppState, options:serveSiteOptions={}) {
     
     const config = appState.config;
 
-    const app = new Application<AppState>({ 
+    const app = new Application<RequestState>({ 
         keys: config.cookieSecret, 
-        contextState: "alias",
-        state: appState
+        contextState: "empty"
+    });
+
+    app.use(async (ctx:Context, next:Next) => {
+        ctx.state.app = appState;
+        await next();
     });
 
     const apiRouter = getApiRouter();

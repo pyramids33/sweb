@@ -4,12 +4,12 @@ import * as mime from "/deps/std/media_types/mod.ts";
 import { Context, Router } from "/deps/oak/mod.ts";
 
 import { readWriteSessionHeaders, hasSession, checkSession } from "/server/middleware/session.ts";
-import { AppState } from "/server/appstate.ts";
+import { RequestState } from "/server/appstate.ts";
 import mstime from "/lib/mstime.ts";
 
-export function getContentRouter () : Router<AppState> {
+export function getContentRouter () : Router<RequestState> {
 
-    const router = new Router<AppState>();
+    const router = new Router<RequestState>();
 
     router.get('/.status', function (ctx:Context) {
         ctx.response.body = 'OK';
@@ -21,9 +21,11 @@ export function getContentRouter () : Router<AppState> {
 
     router.get('/.hassession', hasSession);
 
-    router.get('/(.*)', checkSession, async function (ctx:Context<AppState>) {
-        const { sitePath, config } = ctx.state;
-        const siteDb = ctx.state.openSiteDb();
+    router.get('/(.*)', checkSession, async function (ctx:Context<RequestState>) {
+        const session = ctx.state.session!;
+        const app = ctx.state.app!;
+        const { sitePath, config } = app;
+        const siteDb = app.openSiteDb();
 
         if (['/paywalls.json','/xpub.txt'].includes(ctx.request.url.pathname)) {
             ctx.response.status = 404;
@@ -45,11 +47,11 @@ export function getContentRouter () : Router<AppState> {
             }
         }
 
-        const paywallFile = await ctx.state.getPaywallFile();
+        const paywallFile = await app.getPaywallFile();
         const matchResult = paywallFile.matchUrl(ctx.request.url.pathname);
 
         if (matchResult) {
-            const sessionDb = ctx.state.openSessionDb(ctx.state.session.sessionId!);
+            const sessionDb = app.openSessionDb(session.sessionId!);
             const hasAccess = sessionDb.accessCheck(matchResult.match, mstime.hoursAgo(6));
 
             if (!hasAccess) {

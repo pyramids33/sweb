@@ -121,8 +121,8 @@ class InvoicesApiClient {
         this.client = client;
     }
 
-    transfer (deleteList:string) {
-        return this.client.postFormData('/.api/invoices/transfer', { delete: deleteList });
+    transfer (deleteList:string, doSend=true) {
+        return this.client.postFormData('/.api/invoices/transfer', { delete: deleteList, doSend: doSend ? '1' : '0' });
     }
 }
 

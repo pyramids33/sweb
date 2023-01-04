@@ -397,7 +397,8 @@ mainCmd.command('getpayments')
     let deleteList:string[] = [];
 
     while (true) {
-        const response = await apiClient.invoices.transfer(deleteList.join('\n'));
+        
+        const response = await apiClient.invoices.transfer(deleteList.join('\n'), true);
         const responseObj = await check200JsonResponse(response);
 
         if (responseObj.error) {
@@ -408,7 +409,7 @@ mainCmd.command('getpayments')
         deleteList = [];
 
         const invoices = responseObj as InvoiceRow[];
-        
+
         if (invoices.length === 0) {
             break;
         }
@@ -506,24 +507,29 @@ paywallsCmd.command('add')
 .argument('[address]', 'address or paymail')
 .action((pattern, amount, description, address, _options, cmd) => {
     const sitePath = cmd.parent.parent.opts().sitePath;
+    
+    const output = PaywallFile.ObjectToPaywallOutput({ amount, description, address });
+    
+    if (output.amount < 0) {
+        throw new Error('invalid amount, must be integer > 0')
+    }
+
     const jsonString = Deno.readTextFileSync(sitePath.filePath('paywalls.json'))
     const paywallFile = PaywallFile.fromJSON(jsonString);
-
-    let spec = paywallFile.paywalls[pattern];
-
+    const spec = paywallFile.getPaywall(pattern);
+    
     if (spec === undefined) {
-        spec = new PaywallSpec();
+        if (output.amount > 0) {
+            paywallFile.addPaywall(pattern, { outputs: [ output ] });
+        }
+    } else {
+        if (output.amount > 0) {
+            spec.outputs = spec.outputs || [];
+            spec.outputs.push(output);
+        }
     }
     
-    if (amount > 0) {
-        spec.outputs.push(PaywallSpecOutput.fromObject({ amount, description, address }));
-    }
-
-    if (spec.outputs.length>0) {
-        paywallFile.paywalls[pattern] = spec;
-    }
-
-    Deno.writeTextFileSync(sitePath.filePath('paywalls.json'), JSON.stringify(paywallFile.toObject(), null, 2));
+    Deno.writeTextFileSync(sitePath.filePath('paywalls.json'), JSON.stringify(paywallFile, null, 2));
 });
 
 paywallsCmd.command('delete')
@@ -535,11 +541,11 @@ paywallsCmd.command('delete')
     const jsonString = Deno.readTextFileSync(sitePath.filePath('paywalls.json'))
     const paywallFile = PaywallFile.fromJSON(jsonString);
 
-    const spec = paywallFile.paywalls[pattern];
+    const spec = paywallFile.getPaywall(pattern);
 
-    if (spec) {
+    if (spec && spec.outputs) {
         if (outputNum === 'a'){
-            delete paywallFile.paywalls[pattern];
+            delete spec.outputs;
         } else {
             const outputNumInt = parseInt(outputNum);
 
@@ -548,10 +554,12 @@ paywallsCmd.command('delete')
             }
 
             if (spec.outputs.length === 0) {
-                delete paywallFile.paywalls[pattern];
+                delete spec.outputs;
             }
         }
     }
+
+    Deno.writeTextFileSync(sitePath.filePath('paywalls.json'), JSON.stringify(paywallFile, null, 2));
 });
 
 
@@ -562,7 +570,7 @@ paywallsCmd.command('show')
     const paywallFile = PaywallFile.fromJSON(jsonString);
 
     console.log('paywalls: ');
-    for (const [pattern,spec] of Object.entries(paywallFile.paywalls)) {
+    for (const [ pattern, spec ] of Object.entries(paywallFile.toJSON())) {
         console.log('  '+pattern);
         for (const [id,output] of spec.outputs.entries()) {
             console.log('    '+(id+1)+': ', output.amount, output.description, output.address);

@@ -5,14 +5,15 @@ import { Context, Router } from "/deps/oak/mod.ts";
 import * as coalesce from "/lib/coalesce.ts";
 import { sha256hex } from "/lib/hash.ts";
 
-import { AppState } from "/server/appstate.ts";
+import { RequestState } from "/server/appstate.ts";
 import { FileRow } from "/server/database/filesdb.ts";
 import { Next } from "/server/types.ts";
 
 
 
-async function checkAuthKey (ctx:Context<AppState>, next:Next) {
-    const siteDb = ctx.state.openSiteDb();
+async function checkAuthKey (ctx:Context<RequestState>, next:Next) {
+    const app = ctx.state.app!;
+    const siteDb = app.openSiteDb();
     const siteAuthKeyHash = siteDb.meta.getValue('$.config.authKeyHash');
     const userAuthKey = ctx.request.headers.get('x-authkey');
 
@@ -33,9 +34,9 @@ async function checkAuthKey (ctx:Context<AppState>, next:Next) {
 
 
 
-export function getApiRouter () : Router<AppState> {
+export function getApiRouter () : Router<RequestState> {
 
-    const router = new Router<AppState>();
+    const router = new Router<RequestState>();
 
     router.use(checkAuthKey);
 
@@ -44,10 +45,11 @@ export function getApiRouter () : Router<AppState> {
         return; 
     });
     
-    router.post('/.api/files/info', async function (ctx:Context<AppState>) {
+    router.post('/.api/files/info', async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
         const body = ctx.request.body({ type: 'form-data'});
         const form = await body.value.read();
-        const siteDb = ctx.state.openSiteDb();
+        const siteDb = app.openSiteDb();
         const info = siteDb.files.dirInfo(form.fields.urlPath);
 
         delete info.storagePath;
@@ -60,10 +62,11 @@ export function getApiRouter () : Router<AppState> {
         ctx.response.body = info;
     });
 
-    router.post('/.api/files/download', async function (ctx:Context<AppState>) {
+    router.post('/.api/files/download', async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
         const body = ctx.request.body({ type: 'form-data'});
         const form = await body.value.read();
-        const siteDb = ctx.state.openSiteDb();
+        const siteDb = app.openSiteDb();
         const fileRow = siteDb.files.fileRow(form.fields.urlPath);
 
         if (fileRow === undefined) {
@@ -77,12 +80,13 @@ export function getApiRouter () : Router<AppState> {
         if (path.isAbsolute(fileRow.storagePath)) {
             await ctx.send({ root: path.dirname(fileRow.storagePath), path: path.basename(fileRow.storagePath)  });
         } else {
-            await ctx.send({ root: ctx.state.sitePath.filesPath, path: fileRow.storagePath });
+            await ctx.send({ root: app.sitePath.filesPath, path: fileRow.storagePath });
         } 
     });
 
-    router.post('/.api/files/upload', async function (ctx:Context<AppState>) {
-        const sitePath = ctx.state.sitePath;
+    router.post('/.api/files/upload', async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
+        const sitePath = app.sitePath;
         const body = ctx.request.body({ type: 'form-data'});
         const form = await body.value.read({ outPath: sitePath.filesPath });
     
@@ -102,13 +106,16 @@ export function getApiRouter () : Router<AppState> {
             return;
         }
 
-        const size = (await Deno.stat(reqFile.filename))?.size;
+        const size = (await Deno.stat(reqFile.filename))?.size-2;
+        // hack : https://github.com/oakserver/oak/issues/581
+        Deno.truncateSync(reqFile.filename, size);
+
         const mimeType = form.fields.mimeType || mime.contentType(path.extname(form.fields.urlPath)) || 'application/octet-stream';
         const hash = form.fields.hash;
         const urlPath = form.fields.urlPath;
         const storagePath = path.basename(reqFile.filename);
 
-        const siteDb = ctx.state.openSiteDb();
+        const siteDb = app.openSiteDb();
         const currentFile = siteDb.files.fileRow(form.fields.urlPath);
 
         siteDb.files.upsertFile({ urlPath, hash, size, mimeType, storagePath });
@@ -122,10 +129,11 @@ export function getApiRouter () : Router<AppState> {
         ctx.response.body = {};
     });
 
-    router.post('/.api/files/delete', async function (ctx:Context<AppState>) {
+    router.post('/.api/files/delete', async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
         const body = ctx.request.body({ type: "form-data"});
         const form = await body.value.read();
-        const siteDb = ctx.state.openSiteDb();
+        const siteDb = app.openSiteDb();
 
         const deleteList = (form.fields.delete||'').split('\n');
         const deletedFiles:FileRow[] = [];
@@ -141,7 +149,7 @@ export function getApiRouter () : Router<AppState> {
         })(null);
 
         for (const deletedFile of deletedFiles) {
-            Deno.remove(ctx.state.sitePath.filePath(deletedFile.storagePath)).catch(()=>{})
+            Deno.remove(app.sitePath.filePath(deletedFile.storagePath)).catch(()=>{})
         }
 
         ctx.response.status = 200;
@@ -149,10 +157,11 @@ export function getApiRouter () : Router<AppState> {
         ctx.response.body = {};
     });
 
-    router.post('/.api/files/rename', async function (ctx:Context<AppState>) {
+    router.post('/.api/files/rename', async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
         const body = ctx.request.body({ type: "form-data"});
         const form = await body.value.read();
-        const siteDb = ctx.state.openSiteDb();
+        const siteDb = app.openSiteDb();
         const renameList = (form.fields.rename||'').split('\n');
 
         siteDb.db.transaction(function () {
@@ -167,13 +176,14 @@ export function getApiRouter () : Router<AppState> {
         ctx.response.body = {};
     });
 
-    router.post('/.api/files/list', async function (ctx:Context<AppState>) {
+    router.post('/.api/files/list', async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
         const body = ctx.request.body({ type: "form-data"});
         const form = await body.value.read();
 
         const offset = coalesce.safeInt(form.fields.offset, 0, 10);
 
-        const siteDb = ctx.state.openSiteDb();
+        const siteDb = app.openSiteDb();
         const list = siteDb.files.listFiles(form.fields.search, 1000, offset);
 
         ctx.response.status = 200;
@@ -186,26 +196,30 @@ export function getApiRouter () : Router<AppState> {
     // router.post('/.api/paywalls', async function (ctx:Context<AppState>) {});
     // router.post('/.api/xpub', async function (ctx:Context<AppState>) { })
 
-    router.post('/.api/invoices/transfer', async function (ctx:Context) {
+    router.post('/.api/invoices/transfer', async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
         const body = ctx.request.body({ type: 'form-data'});
         const form = await body.value.read();
-        const siteDb = ctx.state.openSiteDb();
+        const siteDb = app.openSiteDb();
 
         /* client sends the invoice refs to be deleted */
-        siteDb.deleteByRefList((form.fields.delete||'').split(','));
+        const deleteList = (form.fields.delete||'').split('\n');
+        siteDb.deleteByRefList(deleteList);
+
+        const lastRef = deleteList.reduce((p,c) => c > p ? c : p, '');
 
         ctx.response.type = "json";
         ctx.response.status = 200;
 
         if (form.fields.doSend === '1') {
             /* the next 1000 are sent */
-            ctx.response.body = siteDb.getNext1000Invoices();
+            ctx.response.body = siteDb.getNext1000Invoices(lastRef);
         } else {
             ctx.response.body = [];
         }
     });
 
-    router.all('/.api/(.*)', function (ctx:Context<AppState>) {
+    router.all('/.api/(.*)', function (ctx:Context<RequestState>) {
         ctx.response.status = 404;
     })
 

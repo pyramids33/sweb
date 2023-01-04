@@ -1,61 +1,95 @@
 
+import { assertEquals } from '/deps/std/testing/asserts.ts';
+import * as path from '/deps/std/path/mod.ts';
 
-// function matchSegments (patternSegments:string[], urlPathSegments:string[])  {
-//     return patternSegments.every((seg:string, i:number) => i < urlPathSegments.length && seg === urlPathSegments[i] || seg === '*')
-// }
+import { PaywallFile } from '/lib/paywallfile.ts';
 
-// interface MatchResult { 
-//     pattern:string, 
-//     match:string 
-// }
+const testName = path.basename(path.fromFileUrl(import.meta.url));
 
-// function matchUrl (urlPath:string, patterns:string[]) : MatchResult|undefined {
+const pwf = new PaywallFile();
+pwf.addPaywall('/test1/abc/x/', { outputs: [ { amount: 1 } ] });
+pwf.addPaywall('/test1/*/x/', { outputs: [ { amount: 1 } ] });
+pwf.addPaywall('/test1/*/x/fx', { outputs: [ { amount: 1 } ] });
+pwf.addPaywall('/test1/*/x/special/', { outputs: [ { amount: 1 } ] });
 
-//     let result:MatchResult|undefined = undefined;
+{
+    const expected = {
+        "test1": {
+            "/": {
+                "abc": {
+                    "/": {
+                        "x": { outputs: [ { amount: 1 } ]}
+                    }
+                },
+                "*": {
+                    "/": {
+                        "x": {
+                            "/": {
+                                "fx": { outputs: [ { amount: 1 } ]},
+                                "special": { outputs: [ { amount: 1 } ]}
+                            },
+                            "outputs": [ { amount: 1 } ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assertEquals(pwf.paywalls, expected);
+}
+{
+    const expected = {
+        "/test1/abc/x": {"outputs": [{"amount": 1}]},
+        "/test1/*/x":  {"outputs": [{"amount": 1}]},
+        "/test1/*/x/fx": {"outputs": [{"amount": 1}]},
+        "/test1/*/x/special": {"outputs": [{"amount": 1}]}
+    }
+    assertEquals(pwf.toJSON(), expected)
+}
+{
+    const result = pwf.matchUrl('/tset/abc/');
+    assertEquals(result, undefined);
+}
+{
+    // url matches specific pattern over wildcard
+    const result = pwf.matchUrl('/test1/abc/x/');
+    assertEquals(result, {
+        match: "/test1/abc/x/",
+        pattern: "/test1/abc/x",
+        spec: { outputs: [ { amount: 1 } ] }
+    });
+}
+{
+    // url matches wilcard pattern
+    const result = pwf.matchUrl('/test1/xyz/x/');
+    assertEquals(result, {
+        match: "/test1/xyz/x/",
+        pattern: "/test1/*/x",
+        spec: { outputs: [ { amount: 1 } ] }
+    });
+}
+{
+    // url matches pattern with most matching segments
+    const result = pwf.matchUrl('/test1/xyz/x/fx');
+    assertEquals(result, {
+        match: "/test1/xyz/x/fx",
+        pattern: "/test1/*/x/fx",
+        spec: { outputs: [ { amount: 1 } ] }
+    });
+}
+{
+    // url matches prefix
+    const result = pwf.matchUrl('/test1/xyz/x/fx2');
+    assertEquals(result, {
+        match: "/test1/xyz/x",
+        pattern: "/test1/*/x",
+        spec: { outputs: [ { amount: 1 } ] }
+    });
+}
+{
+    // de/serialization
+    const pwf2 = PaywallFile.fromJSON(JSON.stringify(pwf));
+    assertEquals(JSON.stringify(pwf2), JSON.stringify(pwf));
+}
 
-//     const urlPathSegments = urlPath.split('/').filter(x => x != '');
-    
-//     for (const pattern of patterns) {
-//         const patternSegments = pattern.split('/').filter(x => x != '');
-
-//         if (matchSegments(patternSegments, urlPathSegments)) {
-//             const match = '/'+urlPathSegments.slice(0, patternSegments.length).join('/');
-
-//             if (result === undefined || match.length > result.match.length) {
-//                 result = { pattern, match };
-//             }
-//         }
-//     }
-
-//     return result;
-// }
-
-
-const patterns1 = [
-    '/test/*/def/',
-];
-const patterns2 = [
-    '/test/*/def',
-];
-
-const urlPaths = [
-    '/tset/abc/',
-    '/test/abc/',
-    '/test/abc/def',
-    '/test/abc/def/',
-    '/test/abc/def/hij',
-    '/test/xyz',
-    '/test/xyz/',
-]
-
-// for (const urlPath of urlPaths) {
-//     console.log('urlPath:', urlPath);
-//     console.log(matchUrl(urlPath,patterns1));
-//     console.log();
-// }
-
-// for (const urlPath of urlPaths) {
-//     console.log('urlPath:', urlPath);
-//     console.log(matchUrl(urlPath,patterns2));
-//     console.log();
-// }
+console.log(testName, 'passed')

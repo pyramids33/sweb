@@ -1,0 +1,5 @@
+{
+    "/elephant.jpg": { "outputs": [ { "amount":100, "description": "test" }] },
+    "/docs/": { "outputs": [ { "amount":100, "description": "test" }] },
+    "/*/test_file2.txt": { "outputs": [ { "amount":100, "description": "test" }] }
+}
