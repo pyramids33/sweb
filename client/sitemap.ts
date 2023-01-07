@@ -5,8 +5,8 @@ import * as path from "/deps/std/path/mod.ts";
 import { tryStat } from "/lib/trystat.ts";
 import * as JSONFile from "/lib/jsonfile.ts"
 import { trims } from "/lib/trims.ts";
-import { ClientSiteDbApi } from "./clientsitedb.ts";
-import { FileRow } from "./clientfilesdb.ts";
+import { SwebDbApi } from "./swebdb.ts";
+import { FileRow } from "./filesdb.ts";
 import { AsyncQueue } from "/lib/asyncqueue.ts";
 import { hashFile } from "/lib/hash.ts";
 
@@ -134,14 +134,14 @@ const NoOp = () => {};
 export class ChangeDetector {
 
     siteMap:SiteMap
-    siteDb:ClientSiteDbApi
+    swebDb:SwebDbApi
     upserts:FileRow[]
     deletions:string[]
     missing:SiteMapEntry[]
 
-    constructor (siteMap:SiteMap, siteDb:ClientSiteDbApi) {
+    constructor (siteMap:SiteMap, swebDb:SwebDbApi) {
         this.siteMap = siteMap;
-        this.siteDb = siteDb;
+        this.swebDb = swebDb;
         this.upserts = [];
         this.deletions = [];
         this.missing = [];
@@ -158,7 +158,7 @@ export class ChangeDetector {
             await aq.queue(this.#findModified(siteMapEntry).catch(onError));
         }
     
-        for (const fileRow of this.siteDb.files.local.listFiles()) {
+        for (const fileRow of this.swebDb.files.local.listFiles()) {
             await aq.queue(this.#findDeleted(fileRow).catch(onError));
         }    
         
@@ -186,7 +186,7 @@ export class ChangeDetector {
             return;
         }
 
-        const fileRow = this.siteDb.files.local.fileRow(entry.urlPath);
+        const fileRow = this.swebDb.files.local.fileRow(entry.urlPath);
 
         const mtime = stat.mtime !== null ? new Date(stat.mtime).valueOf() : Date.now();
 

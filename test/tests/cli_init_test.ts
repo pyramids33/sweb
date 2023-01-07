@@ -5,7 +5,7 @@ import * as path from '/deps/std/path/mod.ts';
 import { CommandRunner } from '../commandrunner.ts';
 import { authKey, urlPrefix } from '../testconfig.ts';
 
-import ClientSiteDbModule, { Config } from "/client/clientsitedb.ts";
+import SwebDbModule, { Config } from "/client/swebdb.ts";
 import { openDb } from "/lib/database/mod.ts";
 
 // create a empty directory for test data
@@ -36,10 +36,10 @@ assertStringIncludes(result.stdOutText, 'mnemonic:  ');
 
 // inspect client file database
 const dbPath = path.join(testPath, 'example','sweb.db');
-const siteDb = openDb(ClientSiteDbModule, dbPath, { create: false });
+const swebDb = openDb(SwebDbModule, dbPath, { create: false });
 
 // config should equal
-const config = siteDb.meta.getValue('$.config') as Config;
+const config = swebDb.meta.getValue('$.config') as Config;
 assertEquals(config, { siteUrl: "http://127.0.0.1:8098", authKey: "aabbccddee" })
 
 // xpub file was created

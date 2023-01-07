@@ -1,6 +1,6 @@
 import { Database } from "/deps/sqlite3/mod.ts";
 
-export interface ClientFilesDbApi {
+export interface FilesDbApi {
     db:Database,
     local:LocatedFilesDbApi,
     server:LocatedFilesDbApi,
@@ -191,7 +191,7 @@ function initSchema (db:Database) {
 
 
 
-function getApi (db:Database) : ClientFilesDbApi {
+function getApi (db:Database) : FilesDbApi {
     return {
         db,
         local: getLocatedFilesDbApi(db, 'local'),

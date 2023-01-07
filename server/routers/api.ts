@@ -193,9 +193,6 @@ export function getApiRouter () : Router<RequestState> {
         });
     });
 
-    // router.post('/.api/paywalls', async function (ctx:Context<AppState>) {});
-    // router.post('/.api/xpub', async function (ctx:Context<AppState>) { })
-
     router.post('/.api/invoices/transfer', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const body = ctx.request.body({ type: 'form-data'});
@@ -204,7 +201,10 @@ export function getApiRouter () : Router<RequestState> {
 
         /* client sends the invoice refs to be deleted */
         const deleteList = (form.fields.delete||'').split('\n');
-        siteDb.deleteByRefList(deleteList);
+        
+        if (deleteList.length > 0) {
+            siteDb.invoices.deleteByRefList(deleteList);
+        }
 
         const lastRef = deleteList.reduce((p,c) => c > p ? c : p, '');
 
@@ -213,7 +213,7 @@ export function getApiRouter () : Router<RequestState> {
 
         if (form.fields.doSend === '1') {
             /* the next 1000 are sent */
-            ctx.response.body = siteDb.getNext1000Invoices(lastRef);
+            ctx.response.body = siteDb.invoices.getNext1000Invoices(lastRef);
         } else {
             ctx.response.body = [];
         }

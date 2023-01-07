@@ -9,8 +9,8 @@ import { sha256hex } from "/lib/hash.ts";
 
 if (import.meta.main) {
 
-    if (Deno.args.length === 0) {
-        console.error('provide path to config file');
+    if (Deno.args.length === 0 || Deno.args[0] === '--help') {
+        console.error('Usage: swebsvr <config.json> ');
         Deno.exit();
     }
 

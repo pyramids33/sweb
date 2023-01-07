@@ -1,184 +1,56 @@
 import * as commander from "npm:commander";
 import * as path from "/deps/std/path/mod.ts";
-import { bufferToHex } from "/deps/hextools/src/buffer_to_hex.ts";
+
 import bsv from "npm:bsv";
 
-import ClientSiteDbModule from "./clientsitedb.ts";
-import type { ClientSiteDbApi } from "./clientsitedb.ts";
+import SwebDbModule from "./swebdb.ts";
 import { InvoiceRow } from "./invoicesdb.ts";
-import { ApiClient } from "./apiclient.ts";
-import { ChangeDetector, SiteMap } from "./sitemap.ts"
 
 import { openDb } from "/lib/database/mod.ts";
 import { tryStatSync } from "/lib/trystat.ts";
-import { PaywallFile, PaywallSpec, PaywallSpecOutput } from "/lib/paywallfile.ts";
-import { urlPrefix } from "../test/testconfig.ts";
+import { SiteMap } from "./sitemap.ts"
+import { paywallsCmd } from "./cli_paywallscmd.ts"
 
+import { 
+    uploadCmd, 
+    downloadCmd, 
+    deleteCmd, 
+    infoCmd, 
+    renameCmd 
+} from "./cli_apicmds.ts"
 
-
-interface ServerFileRow {
-    urlPath:string
-    hash:string
-    size:number
-    mimeType:string
-}
-
-function validateAuthKey (value:string) {
-    if (value === 'r') {
-        const buf = new Uint8Array(32);
-        crypto.getRandomValues(buf);
-        value = bufferToHex(buf)
-    } else if (value && !/^(?:[a-f0-9]{2}){5,32}$/.test(value)) {
-        throw new commander.InvalidArgumentError('Not a hex string 10-64 chars');
-    }
-    return value;
-}
-
-function validateUrl (value:string) : string {
-    if (value) {
-        if (!/[a-z]+\:\/\//.test(value)) {
-            value = 'https://'+value;
-        }
-        if (!value.startsWith('https://') && !value.startsWith('http://')) {
-            throw new commander.InvalidArgumentError('Invalid protocol');
-        }
-        try {
-            return new URL(value).origin;
-        } catch (error) {
-            throw new commander.InvalidArgumentError(error.message);
-        }
-    }
-    return value;
-}
-
-function validateXprv (value:string) : bsv.Bip32 {
-    try {
-        const key = bsv.Bip32.fromString(value);
-        if (key.isPrivate()) {
-            return key;
-        }
-        throw new commander.InvalidArgumentError('The key is not a private key.')
-    } catch (error) {
-        throw new commander.InvalidArgumentError(error.message);
-    }
-}
-
-function tryOpenDb (dbPath:string) {
-    try {
-        return openDb<ClientSiteDbApi>(ClientSiteDbModule, dbPath, { create: false });
-    } catch (error) {
-        if (error.code === 'SQLITE_CANTOPEN') {
-            console.error('Cannot open database: ' + dbPath);
-            Deno.exit(1);
-        }
-        throw error;
-    }
-}
-
-function tryGetApiClient (siteDb:ClientSiteDbApi, abortSignal?:AbortSignal) {
-    const { siteUrl, authKey } = siteDb.getConfig();
-    try {
-        new URL(siteUrl!);
-    } catch {
-        console.error('Invalid or missing siteUrl. (run config command)');
-        Deno.exit(1);
-    }
-    if (authKey === undefined) {
-        console.error('Missing authKey. (run config command)');
-        Deno.exit(1);
-    }
-    return new ApiClient(urlPrefix, authKey, abortSignal);
-}
-
-async function check200JsonResponse (response:Response) {
-    // check response is status 200 with valid JSON, return
-    // return response data as object
-    if (!response.ok) {
-        console.error('Error: ' + response.status.toString() + ' ' + response.statusText);
-        Deno.exit(1);
-    }
-
-    let responseObj; 
-
-    try {
-        responseObj = await response.json();
-    } catch {
-        console.error('Error: invalid json response');
-        Deno.exit(1);
-    }
-
-    return responseObj;
-}
-
-async function reIndexSiteMap (siteMap:SiteMap, siteDb:ClientSiteDbApi) {
-
-    const changeDetector = new ChangeDetector(siteMap, siteDb);
-    const results = await changeDetector.detectChanges();
-    
-    siteDb.db.transaction(function () {
-        try {
-            for (const file of results.upserts) {
-                siteDb.files.local.upsertFile(file);
-            }
-            for (const urlPath of results.deletions) {
-                siteDb.files.local.deleteFile(urlPath);
-            }
-        } catch (error) {
-            if (!siteDb.db.inTransaction) {
-                throw error; 
-            }
-        }
-    })(null);
-
-    return results;
-}
-
-// function prettyFiles (obj) {
-//     // pretty print for getfiles command
-//     let out = Object.keys(obj.files)
-//         .sort()
-//         .map(x => { return { ...obj.files[x], urlPath: x }});
-//     console.table(out, ['urlPath','mimeType','size','hash']);
-// }
-
-const configOptions = {
-    siteUrl: new commander.Option(
-        '--siteUrl <siteUrl>', 
-        'Url of your site. eg https://mysite.com/ ').argParser(validateUrl),
-
-    authKey: new commander.Option(
-        '--authKey <authKey>', 
-        `Authentication key (10-64 character hex string). `+
-        `type 'r' to generate at random. `).argParser(validateAuthKey),
-
-    xprvKey: new commander.Option(
-        '--xprvKey <xprvKey>', 
-        `Bitcoin Bip32 private key (xprv...) `+
-        `type 'r' to generate at random. `).argParser(validateAuthKey),  
-};
+import { 
+    ServerFileRow,
+    check200JsonResponse,
+    configOptions,
+    reIndexSiteMap,
+    tryGetApiClient,
+    tryOpenDb,
+    validateXprv,
+    validateFormat
+} from "./cli_helpers.ts"
 
 /*
+
 init
-sitemap --walk
-
+sitemap
 config --authKey --siteUrl
-       show
-
+config show
 hdkey --xprv --xpub --random
-
-paywall add <pattern> <amount> [description] [address or paymail] [n]
-        rem <pattern> <n>
-        show --pattern --match
-
+paywalls add <pattern> <amount> [description] [address or paymail]
+paywalls delete <pattern> <outputNum>
+paywalls show
 reindex
 diff
 publish
 getpayments
+
 upload
 download
 info
 delete
 rename
+
 */
 
 export const mainCmd = new commander.Command('db');
@@ -201,10 +73,10 @@ mainCmd.command('init')
         Deno.exit(1);
     }
 
-    const siteDb = openDb<ClientSiteDbApi>(ClientSiteDbModule, dbPath);
+    const swebDb = openDb(SwebDbModule, dbPath);
  
-    siteDb.meta.setValue('$.config.siteUrl', options.siteUrl);
-    siteDb.meta.setValue('$.config.authKey', options.authKey);
+    swebDb.meta.setValue('$.config.siteUrl', options.siteUrl);
+    swebDb.meta.setValue('$.config.authKey', options.authKey);
 
     let xprv:bsv.Bip32;
 
@@ -218,21 +90,15 @@ mainCmd.command('init')
         console.log('mnemonic: ', bip39.mnemonic);
     }
 
-    siteDb.meta.setValue('$.hdkeys.'+xprv.toPublic().toString(), xprv.toString());
+    swebDb.meta.setValue('$.hdkeys.'+xprv.toPublic().toString(), xprv.toString());
 
     Deno.writeTextFileSync(path.join(sitePath,'xpub.txt'), xprv.toPublic().toString());
 
     const siteMap = new SiteMap(sitePath);
-    await reIndexSiteMap(siteMap, siteDb);
+    await reIndexSiteMap(siteMap, swebDb);
 
 });
 
-function validateFormat (value:string) {
-    if (['text','json'].includes(value)) {
-        return value;
-    }
-    throw new commander.InvalidOptionArgumentError('valid option is text, json')
-}
 
 mainCmd.command('sitemap')
 .option('--no-reindex', 'skip indexing of local files')
@@ -240,14 +106,14 @@ mainCmd.command('sitemap')
 .description('show site map by walking sitePath')
 .action(async (options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
-    const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'))
+    const swebDb = tryOpenDb(sitePath)
 
     if (options.reindex) {
         const siteMap = new SiteMap(sitePath);
-        await reIndexSiteMap(siteMap, siteDb);
+        await reIndexSiteMap(siteMap, swebDb);
     }
 
-    const filesList = siteDb.files.local.listFiles();
+    const filesList = swebDb.files.local.listFiles();
 
     if (options.format === 'text') {
         for (const fileRow of filesList) {
@@ -266,10 +132,10 @@ mainCmd.command('reindex')
 .action(async (options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
     const siteMap = new SiteMap(sitePath);
-    const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'))
+    const swebDb = tryOpenDb(sitePath)
 
     if (options.local) {
-        const changes = await reIndexSiteMap(siteMap, siteDb);
+        const changes = await reIndexSiteMap(siteMap, swebDb);
         for (const item of changes.upserts) {
             console.log('new/updated', item.urlPath);
         }
@@ -282,7 +148,7 @@ mainCmd.command('reindex')
     }
 
     if (options.server) {
-        const apiClient = tryGetApiClient(siteDb);
+        const apiClient = tryGetApiClient(swebDb);
         const response = await apiClient.files.list()
         const responseObj = await check200JsonResponse(response);
         
@@ -291,10 +157,10 @@ mainCmd.command('reindex')
             Deno.exit(1);
         }
 
-        siteDb.db.transaction(function () {
-            siteDb.files.server.deleteAll();
+        swebDb.db.transaction(function () {
+            swebDb.files.server.deleteAll();
             for (const f of responseObj as ServerFileRow[]) {
-                siteDb.files.server.upsertFile(f);
+                swebDb.files.server.upsertFile(f);
             }
         })(null);
 
@@ -307,11 +173,11 @@ mainCmd.command('diff')
 .description('Compare local files to server files. (performs local reindex)')
 .action(async (_options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
-    const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'));
+    const swebDb = tryOpenDb(sitePath);
     const siteMap = new SiteMap(sitePath);
-    await reIndexSiteMap(siteMap, siteDb);
+    await reIndexSiteMap(siteMap, swebDb);
 
-    const { deletions, renames, uploads } = siteDb.files.compareLocalToServer();
+    const { deletions, renames, uploads } = swebDb.files.compareLocalToServer();
 
     for (const item of deletions) {
         console.log('delete', item.urlPath);
@@ -329,16 +195,16 @@ mainCmd.command('publish')
 .description('Sync files to server. (Local reindex, diff, then upload/delete/rename)')
 .action(async (_options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
-    const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'));
+    const swebDb = tryOpenDb(sitePath);
     const siteMap = new SiteMap(sitePath);
     
     console.log('reindexing...');
-    await reIndexSiteMap(siteMap, siteDb);
+    await reIndexSiteMap(siteMap, swebDb);
 
     console.log('comparing...');
-    const apiClient = tryGetApiClient(siteDb);
+    const apiClient = tryGetApiClient(swebDb);
     
-    const { deletions, renames, uploads } = siteDb.files.compareLocalToServer();
+    const { deletions, renames, uploads } = swebDb.files.compareLocalToServer();
 
     {
         console.log('deletions... ' + deletions.length.toString());
@@ -351,7 +217,7 @@ mainCmd.command('publish')
             Deno.exit(1);
         }
 
-        siteDb.files.server.deleteList(...deleteList);
+        swebDb.files.server.deleteList(...deleteList);
     }
 
     {
@@ -365,7 +231,7 @@ mainCmd.command('publish')
             Deno.exit(1);
         }
 
-        siteDb.files.server.renameList(renameList);
+        swebDb.files.server.renameList(renameList);
     }
 
     {
@@ -381,7 +247,7 @@ mainCmd.command('publish')
                 Deno.exit(1);
             }
 
-            siteDb.files.server.upsertFile(item);
+            swebDb.files.server.upsertFile(item);
         }
     }
 });
@@ -391,8 +257,8 @@ mainCmd.command('getpayments')
 .description('Download invoices from server')
 .action(async (_options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
-    const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'));
-    const apiClient = tryGetApiClient(siteDb);
+    const swebDb = tryOpenDb(sitePath);
+    const apiClient = tryGetApiClient(swebDb);
 
     let deleteList:string[] = [];
 
@@ -414,39 +280,35 @@ mainCmd.command('getpayments')
             break;
         }
         
-        siteDb.db.transaction(function () {
+        swebDb.db.transaction(function () {
             for (const invoice of invoices) {
-                siteDb.invoices.addInvoice(invoice);
+                swebDb.invoices.addInvoice(invoice);
                 deleteList.push(invoice.ref);
             }
         })(null);
     }
 });
 
-////
-////
-////
-////
 
 const configCmd = mainCmd.command('config')
 .addOption(configOptions.siteUrl)
 .addOption(configOptions.authKey)
 .option('--no-siteUrl', 'remove siteUrl config')
 .option('--no-authKey', 'remove authKey config')
-.description('set configuration options')
+.description('Set configuration options')
 .action((options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
-    const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'));
+    const swebDb = tryOpenDb(sitePath);
 
     for (const name in ['authKey','siteUrl']) {
         const key = '$.config.'+name;
 
         if (options[name]) {
-            siteDb.meta.setValue(key, options[name]||null);
+            swebDb.meta.setValue(key, options[name]||null);
         }
 
         if (options[name] === false) {
-            siteDb.meta.removeValue(key);
+            swebDb.meta.removeValue(key);
         }
     }
 });
@@ -456,11 +318,11 @@ configCmd.command('show')
 .description('show config from db')
 .action((options, cmd) => {
     const sitePath = cmd.parent.parent.opts().sitePath;
-    const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'))
+    const swebDb = tryOpenDb(sitePath)
     
-    console.log('config: '+path.join(sitePath, 'sweb.db'))
+    console.log('config: '+sitePath)
     
-    const config = siteDb.getConfig();
+    const config = swebDb.getConfig();
     
     for(const [name,value] of Object.entries(config)) {
         if (options.names === undefined || options.names?.includes(name)) {
@@ -469,15 +331,15 @@ configCmd.command('show')
     }
 });
 
-////
 
 mainCmd.command('hdkey')
+.description('Generate a new hd key (bip32)')
 .option('--random', 'generate random key (seed will be printed)')
 .option('--passphrase <passphrase>', 'passphrase for generated bitcoin seed')
 .option('--xprv <xprv>', 'Bip32 Private Key xprv... ', validateXprv)
 .action((options, cmd) => {
     const sitePath = cmd.parent.parent.opts().sitePath;
-    const siteDb = tryOpenDb(path.join(sitePath, 'sweb.db'));
+    const swebDb = tryOpenDb(sitePath);
 
     let xprv:bsv.Bip32;
 
@@ -492,91 +354,14 @@ mainCmd.command('hdkey')
     }
 
     if (xprv) {
-        siteDb.meta.setValue('$.hdkeys.'+xprv.toPublic().toString(), xprv.toString());
+        swebDb.meta.setValue('$.hdkeys.'+xprv.toPublic().toString(), xprv.toString());
         Deno.writeTextFileSync(path.join(sitePath,'xpub.txt'), xprv.toPublic().toString());
     }
 });
 
-
-const paywallsCmd = mainCmd.command('paywalls');
-paywallsCmd.command('add')
-.description('add paywall')
-.argument('<pattern>', 'pattern')
-.argument('<amount>', 'payment amount (SATs)')
-.argument('[description]', 'reason for payment etc')
-.argument('[address]', 'address or paymail')
-.action((pattern, amount, description, address, _options, cmd) => {
-    const sitePath = cmd.parent.parent.opts().sitePath;
-    
-    const output = PaywallFile.ObjectToPaywallOutput({ amount, description, address });
-    
-    if (output.amount < 0) {
-        throw new Error('invalid amount, must be integer > 0')
-    }
-
-    const jsonString = Deno.readTextFileSync(sitePath.filePath('paywalls.json'))
-    const paywallFile = PaywallFile.fromJSON(jsonString);
-    const spec = paywallFile.getPaywall(pattern);
-    
-    if (spec === undefined) {
-        if (output.amount > 0) {
-            paywallFile.addPaywall(pattern, { outputs: [ output ] });
-        }
-    } else {
-        if (output.amount > 0) {
-            spec.outputs = spec.outputs || [];
-            spec.outputs.push(output);
-        }
-    }
-    
-    Deno.writeTextFileSync(sitePath.filePath('paywalls.json'), JSON.stringify(paywallFile, null, 2));
-});
-
-paywallsCmd.command('delete')
-.description('delete paywall')
-.argument('<pattern>', 'pattern')
-.argument('<outputNum>', 'output number or `a` to remove all ')
-.action((pattern, outputNum, _options, cmd) => {
-    const sitePath = cmd.parent.parent.opts().sitePath;
-    const jsonString = Deno.readTextFileSync(sitePath.filePath('paywalls.json'))
-    const paywallFile = PaywallFile.fromJSON(jsonString);
-
-    const spec = paywallFile.getPaywall(pattern);
-
-    if (spec && spec.outputs) {
-        if (outputNum === 'a'){
-            delete spec.outputs;
-        } else {
-            const outputNumInt = parseInt(outputNum);
-
-            if (outputNumInt > 0 && outputNumInt <= spec.outputs.length) {
-                spec.outputs.splice(outputNum-1, 1)
-            }
-
-            if (spec.outputs.length === 0) {
-                delete spec.outputs;
-            }
-        }
-    }
-
-    Deno.writeTextFileSync(sitePath.filePath('paywalls.json'), JSON.stringify(paywallFile, null, 2));
-});
-
-
-paywallsCmd.command('show')
-.action((_options, cmd) => {
-    const sitePath = cmd.parent.parent.opts().sitePath;
-    const jsonString = Deno.readTextFileSync(sitePath.filePath('paywalls.json'))
-    const paywallFile = PaywallFile.fromJSON(jsonString);
-
-    console.log('paywalls: ');
-    for (const [ pattern, spec ] of Object.entries(paywallFile.toJSON())) {
-        console.log('  '+pattern);
-        for (const [id,output] of spec.outputs.entries()) {
-            console.log('    '+(id+1)+': ', output.amount, output.description, output.address);
-        }
-    }
-});
-
-////
-
+mainCmd.addCommand(paywallsCmd);
+mainCmd.addCommand(uploadCmd);
+mainCmd.addCommand(downloadCmd);
+mainCmd.addCommand(deleteCmd);
+mainCmd.addCommand(infoCmd);
+mainCmd.addCommand(renameCmd);

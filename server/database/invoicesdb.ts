@@ -1,10 +1,18 @@
+import { default as id128 } from "npm:id128";
 import { Database } from "/deps/sqlite3/mod.ts";
 
 export interface InvoicesDbApi {
-    db:Database,
-    addInvoice (f:InvoiceRow) : InvoiceRow|undefined,
-    invoiceByRef (ref:string) : InvoiceRow|undefined,
+    db:Database
+    addInvoice (f:InvoiceRow) : InvoiceRow|undefined
+    invoiceByRef (ref:string) : InvoiceRow|undefined
     listInvoices () : InvoiceRow[]
+    paidUnreadInvoices (expiry:number) : InvoiceRow[]
+    payInvoice (ref:string, paidAt:number, paymentMethod:string, txid?:string, txbuf?:Uint8Array) : number
+    recentInvoiceByUrlPath (urlPath:string, expiry:number) : InvoiceRow|undefined
+    accessCheck (urlPath:string,cutOff:number) : boolean
+    markInvoiceRead (ref:string, readValue:number) : number
+    getNext1000Invoices(afterRef:string):InvoiceRow[]
+    deleteByRefList(refs:string[]):void
 }
 
 export interface InvoiceRow extends Record<string, unknown> {
@@ -68,6 +76,23 @@ export function getApi (db:Database) : InvoicesDbApi {
 
     const psListInvoices = db.prepare('select * from invoices order by ref');
 
+    const psListPaidUnreadInvoices = db.prepare(`
+        select * from invoices where read = 0 and (paidAt is not null or (paidAt is null and created < :expiry)) limit 1000`);
+
+    const psPayInvoice = db.prepare(`
+        update invoices set 
+            data = :data, txid = :txid, txbuf = :txbuf, paidAt = :paidAt, paymentMethod = :paymentMethod
+        where ref = :ref and paidAt is null`);
+
+    const psRecentInvoiceByUrlPath = db.prepare(`
+        select * from invoices where urlPath = :urlPath and created > :expiry and paidAt is null limit 1`);    
+
+    const psAccessCheck = db.prepare(`select ref from invoices where urlPath = :urlPath and paidAt > :cutoff LIMIT 1`);   
+
+    const psMarkInvoiceRead = db.prepare('update invoices set read = ? where ref = ?');
+
+    const psNext1000Invoices = db.prepare(`select * from invoices where ref > ? order by ref limit 1000`);
+
     return {
         db,
         addInvoice ({ ref, created, domain, urlPath, pwfHash, spec, subtotal, paymentMethod, paidAt, data, txid, txbuf, read }) {
@@ -86,7 +111,38 @@ export function getApi (db:Database) : InvoicesDbApi {
         },
         listInvoices () {
             return psListInvoices.all();
-        }
+        },
+        accessCheck (urlPath, cutoff) {
+            return psAccessCheck.get({ urlPath, cutoff }) !== undefined;        
+        },
+        paidUnreadInvoices (expiry:number) {
+            return psListPaidUnreadInvoices.all({ expiry });
+        },
+        payInvoice (ref, paidAt, paymentMethod, txid, txbuf) {
+            return psPayInvoice.run({ 
+                ref, 
+                paidAt, 
+                data: null, 
+                paymentMethod: paymentMethod||null, 
+                txid: txid||null, 
+                txbuf: txbuf||null 
+            });
+        },
+        recentInvoiceByUrlPath (urlPath, expiry) {
+            return psRecentInvoiceByUrlPath.get({ urlPath, expiry });
+        },
+        markInvoiceRead (ref:string, readValue:number) {
+            return psMarkInvoiceRead.run(readValue, ref);
+        },
+        getNext1000Invoices (afterRef = '') : InvoiceRow[] {
+            return psNext1000Invoices.all(afterRef);
+        },
+        deleteByRefList (refs:string[]) {
+            const refCSV = refs.filter(x => id128.Ulid.isCanonical(x)).map(x => `'${x}'`).join(',');
+            if (refs.length > 0) {
+                db.prepare(`delete from invoices where ref in (${refCSV})`).run();
+            }
+        },
     }
 }
 

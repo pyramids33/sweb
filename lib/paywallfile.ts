@@ -96,7 +96,7 @@ export class PaywallFile {
         const segments = pattern.split('/');
         
         let node:PaywallNode = { "/": this.paywalls };
-        
+
         for (const segment of segments) {
             if (segment === '') {
                 continue;

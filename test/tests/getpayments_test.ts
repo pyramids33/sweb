@@ -1,5 +1,5 @@
 import { copySync, emptyDirSync } from '/deps/std/fs/mod.ts';
-import { assertEquals, assertStringIncludes } from '/deps/std/testing/asserts.ts';
+import { assertEquals } from '/deps/std/testing/asserts.ts';
 import * as path from '/deps/std/path/mod.ts';
 
 import { sha256hex } from "/lib/hash.ts";
@@ -10,8 +10,8 @@ import { testConfig, urlPrefix, authKey, xPrv } from "/test/testconfig.ts";
 
 import { CommandRunner } from '../commandrunner.ts';
 import { ApiClient } from "/client/apiclient.ts";
-import ClientSiteDbModule from "/client/clientsitedb.ts";
-import {CookyFetch} from "../cookyfetch.ts";
+import SwebDbModule from "/client/swebdb.ts";
+
 import { openDb } from "../../lib/database/mod.ts";
 
 // create a empty directory for test data
@@ -68,6 +68,7 @@ try {
 
     // generate paid invoices, however after running it I saved the prefilled db (from the test dir)
     // put this in a separate generate_data.ts script
+    // import {CookyFetch} from "../cookyfetch.ts";
     // const cookyFetch1 = CookyFetch();
     // const cookyFetch2 = CookyFetch();
     // const cookyFetch3 = CookyFetch();
@@ -104,7 +105,8 @@ try {
 
     {
         await appState.copyFromSessionDbs(abortController.signal);
-        const siteDb = appState.openSiteDb();
+        //console.log(siteDb.db.inTransaction)
+        //const siteDb = appState.openSiteDb();
         assertEquals(siteDb.invoices.listInvoices().length, 3);
     }
     {
@@ -115,8 +117,8 @@ try {
     }
     {
         const dbPath = path.join(sitePathLocal, 'sweb.db');
-        const localSiteDb = openDb(ClientSiteDbModule, dbPath);
-        assertEquals(localSiteDb.invoices.listInvoices().length, 3);
+        const swebDb = openDb(SwebDbModule, dbPath);
+        assertEquals(swebDb.invoices.listInvoices().length, 3);
     }
 } catch (error) {
     throw error;

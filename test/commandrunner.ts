@@ -61,7 +61,7 @@ export class CommandRunner {
         ]);
 
         process.close();
-
+        this.counter++;
         return new CommandRunnerResult(status, stdOut, stdErr);
     }
 }

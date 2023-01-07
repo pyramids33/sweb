@@ -7,14 +7,9 @@ import { openDb } from "/lib/database/mod.ts";
 import mstime from "/lib/mstime.ts";
 import { PaywallFile } from "/lib/paywallfile.ts";
 
-import CountersDbModule from "/server/database/countersdb.ts";
-import type { CountersDbApi } from "/server/database/countersdb.ts";
-
-import SiteDbModule from "/server/database/sitedb.ts";
-import type { SiteDbApi } from "/server/database/sitedb.ts";
-
-import SessionDbModule from "/server/database/sessiondb.ts";
-import type { SessionDbApi } from "/server/database/sessiondb.ts";
+import CountersDbModule, { CountersDbApi } from "/server/database/countersdb.ts";
+import SiteDbModule, { SiteDbApi } from "/server/database/sitedb.ts";
+import SessionDbModule, { SessionDbApi } from "/server/database/sessiondb.ts";
 
 import { SitePath } from "/server/sitepath.ts";
 import { Config } from "/server/types.ts";
@@ -52,7 +47,7 @@ export class AppState {
 
     openCountersDb () : CountersDbApi {
         if (this.#countersDb === undefined) {
-            this.#countersDb = openDb<CountersDbApi>(CountersDbModule, this.sitePath.countersDbPath(this.workerId));
+            this.#countersDb = openDb(CountersDbModule, this.sitePath.countersDbPath(this.workerId));
         }
         return this.#countersDb;
     }
@@ -62,7 +57,7 @@ export class AppState {
             if (forceReload && this.#siteDb) {
                 this.#siteDb.db.close();
             }
-            this.#siteDb = openDb<SiteDbApi>(SiteDbModule, this.sitePath.siteDbPath);
+            this.#siteDb = openDb(SiteDbModule, this.sitePath.siteDbPath);
         }
         return this.#siteDb;
     }
@@ -113,33 +108,47 @@ export class AppState {
 
             if (dirEnt.isFile && dirEnt.name.endsWith('.db')) {
 
+                const sessionId = dirEnt.name.slice(0,-3);
+                const siteDb = this.openSiteDb();
+                const sessionDb = this.openSessionDb(sessionId);
+                let invoices = sessionDb.paidUnreadInvoices(mstime.minsAgo(15));
+                
+                while (invoices.length > 0) {
+                    siteDb.db.transaction(function () {
+                        for (const invoice of invoices) {
+                            siteDb.invoices.addInvoice(invoice);
+                        }                
+                    })(null);
+
+                    const batchNum = Date.now();
+
+                    sessionDb.db.transaction(function () {
+                        for (const invoice of invoices) {
+                            sessionDb.markInvoiceRead(invoice.ref, batchNum);
+                        }  
+                    })(null);
+
+                    invoices = sessionDb.paidUnreadInvoices(mstime.minsAgo(15));
+                    
+                    await delay(0);
+                }
+
+                const sessionCheckIn = sessionDb.getCheckIn()
                 const sessionDbFileName = path.join(this.sitePath.sessionDbsPath, dirEnt.name);
 
-                try {
-                    const siteDb = openDb(SiteDbModule, this.sitePath.siteDbPath, { create: false });
-                    siteDb.attachSessionDb(sessionDbFileName);
-                    siteDb.copyFromSessionDb();
-                    const sessionCheckIn = siteDb.getSessionDbCheckIn();
-                    siteDb.db.close();
+                /* If the session has not checked in for 8 hours, the cookie must be expired */
+                if (sessionCheckIn && sessionCheckIn < mstime.hoursAgo(8)) {
+                    delete this.#sessionDbCache[sessionId];
+                    sessionDb.db.close();
+                    await Deno.remove(sessionDbFileName);
+                }
 
-                    /* If the session has not checked in for 8 hours, the cookie must be expired */
-                    if (sessionCheckIn && sessionCheckIn < mstime.hoursAgo(8)) {
-                        await Deno.remove(sessionDbFileName);
-                    }
-
-                } catch (error) {
-                    console.error(error);
-                }   
             }
 
             if (abortSignal.aborted) {
                 break;
             }
         }
-
-        // reopen so it picks up the new records, otherwise getting empty list
-        this.openSiteDb(true);
-
     }
 
     async runSessionDbCopier (abortSignal: AbortSignal, delayMs:number) {
