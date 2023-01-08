@@ -98,7 +98,7 @@ export class SiteMap {
                 const mimeType = swebVars?.mimeType || mime.contentType(path.extname(swebVars.filename)) || 'application/octet-stream';
                 return {
                     dbRelativePath,
-                    urlPath: urlPath+'/',
+                    urlPath: trims(urlPath, { suffix: '/' }) + '/',
                     storagePath,
                     isDirectory: true,
                     mimeType
@@ -214,7 +214,6 @@ export class ChangeDetector {
     async #findDeleted (fileRow:FileRow) {
         const dbRelativePath = urlPathToDbRelativeFilePath(fileRow.urlPath);
         const info = await this.siteMap.fileInfo(dbRelativePath);
-
         if (info === undefined) {
             this.deletions.push(fileRow.urlPath); 
         }

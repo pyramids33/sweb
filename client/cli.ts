@@ -20,10 +20,10 @@ import {
 } from "./cli_apicmds.ts"
 
 import { 
-    ServerFileRow,
     check200JsonResponse,
     configOptions,
-    reIndexSiteMap,
+    reIndexSiteMap,  
+    ServerFileRow,
     tryGetApiClient,
     tryOpenDb,
     validateXprv,
@@ -31,26 +31,23 @@ import {
 } from "./cli_helpers.ts"
 
 /*
-
 init
 sitemap
 config --authKey --siteUrl
 config show
 hdkey --xprv --xpub --random
 paywalls add <pattern> <amount> [description] [address or paymail]
-paywalls delete <pattern> <outputNum>
+paywalls remove <pattern> <outputNum>
 paywalls show
 reindex
 diff
 publish
 getpayments
-
 upload
 download
 info
 delete
 rename
-
 */
 
 export const mainCmd = new commander.Command('db');
@@ -279,6 +276,8 @@ mainCmd.command('getpayments')
         if (invoices.length === 0) {
             break;
         }
+        const sum = invoices.reduce((p,c) => p + c.subtotal, 0);
+        console.log('received '+invoices.length+' invoices. (' + sum.toString() + ' sats)')
         
         swebDb.db.transaction(function () {
             for (const invoice of invoices) {

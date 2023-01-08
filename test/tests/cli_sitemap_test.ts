@@ -29,6 +29,13 @@ const result = await cmd.run(execPath, 'sitemap', '--format','json', '--sitePath
 
 const expected = [
     {
+      hash: "880918e82d02819309e5157afcb7a42077ba4a0f863f66a622078061ac090974",
+      mimeType: "text/html; charset=UTF-8",
+      size: 173,
+      storagePath: "index.html",
+      urlPath: "/",
+    },
+    {
       "urlPath": "/5starshotel.jpeg",
       "hash": "eaab6d7f945b71fa51fc9e4a0c6ee3e6dfe535bb1fe750cf635add2c30ed483a",
       "size": 9543,
