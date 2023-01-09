@@ -1,5 +1,6 @@
 import * as path from "/deps/std/path/mod.ts";
 import * as mime from "/deps/std/media_types/mod.ts";
+import { bufferToHex } from "/deps/hextools/mod.ts";
 import { Context, Router } from "/deps/oak/mod.ts";
 
 import * as coalesce from "/lib/coalesce.ts";
@@ -8,6 +9,7 @@ import { sha256hex } from "/lib/hash.ts";
 import { RequestState } from "/server/appstate.ts";
 import { FileRow } from "/server/database/filesdb.ts";
 import { Next } from "/server/types.ts";
+
 
 
 
@@ -213,7 +215,9 @@ export function getApiRouter () : Router<RequestState> {
 
         if (form.fields.doSend === '1') {
             /* the next 1000 are sent */
-            ctx.response.body = siteDb.invoices.getNext1000Invoices(lastRef);
+            ctx.response.body = siteDb.invoices.getNext1000Invoices(lastRef).map(x => { 
+                return { ...x, txbuf: (x.txbuf ? bufferToHex(x.txbuf) : undefined) }
+            });
         } else {
             ctx.response.body = [];
         }

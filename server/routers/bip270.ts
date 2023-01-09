@@ -327,8 +327,15 @@ export function getBip270Router () : Router<RequestState> {
             ctx.response.status = 404;
             return;
         }
+
+        const spec = JSON.parse(invoice.spec);
+        const tx = new bsv.Tx();
         
-        sessionDb.payInvoice(invoice.ref, Date.now(), 'devpay', undefined, undefined);
+        for (const item of spec.outputs) {
+            tx.addTxOut(new bsv.Bn(item.amount), bsv.Script.fromHex(item.script));
+        }
+        
+        sessionDb.payInvoice(invoice.ref, Date.now(), 'devpay', tx.id(), tx.toBuffer());
 
         app.sse.onPayment(session.sessionId + ' ' + query.ref);
         

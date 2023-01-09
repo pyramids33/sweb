@@ -1,5 +1,5 @@
 import { copySync, emptyDirSync } from '/deps/std/fs/mod.ts';
-import { assertEquals } from '/deps/std/testing/asserts.ts';
+import { assertEquals, assertStringIncludes } from '/deps/std/testing/asserts.ts';
 import * as path from '/deps/std/path/mod.ts';
 
 import { sha256hex } from "/lib/hash.ts";
@@ -45,6 +45,8 @@ siteDb.meta.setValue('$.config.authKeyHash', sha256hex(authKey));
 const serverClosed = serveSite(appState, { abortSignal: abortController.signal });
 const apiClient = new ApiClient(urlPrefix, authKey, abortController.signal);
 
+import {CookyFetch} from "../cookyfetch.ts";
+
 try {
 
     // init client db
@@ -68,40 +70,40 @@ try {
 
     // generate paid invoices, however after running it I saved the prefilled db (from the test dir)
     // put this in a separate generate_data.ts script
-    // import {CookyFetch} from "../cookyfetch.ts";
-    // const cookyFetch1 = CookyFetch();
-    // const cookyFetch2 = CookyFetch();
-    // const cookyFetch3 = CookyFetch();
-    // for (const cookyFetch of [cookyFetch1,cookyFetch2,cookyFetch3]){
-    //     let invoice;
-    //     // get cookie
-    //     {   
-    //         const res = await cookyFetch(urlPrefix+'/elephant.jpg', { signal: abortController.signal });
-    //         assertEquals(res.status, 200);
-    //         await res.text();
-    //     }
-    //     // get invoice
-    //     {
-    //         const res = await cookyFetch(urlPrefix+'/.bip270/inv', { 
-    //             signal: abortController.signal, 
-    //             method: 'POST',
-    //             headers:{ 'Content-Type': 'application/x-www-form-urlencoded' },    
-    //             body: new URLSearchParams({ urlPath: '/elephant.jpg' })
-    //         });
+    
+    const cookyFetch1 = CookyFetch();
+    const cookyFetch2 = CookyFetch();
+    const cookyFetch3 = CookyFetch();
+    for (const cookyFetch of [cookyFetch1,cookyFetch2,cookyFetch3]){
+        let invoice;
+        // get cookie
+        {   
+            const res = await cookyFetch(urlPrefix+'/elephant.jpg', { signal: abortController.signal });
+            assertEquals(res.status, 200);
+            await res.text();
+        }
+        // get invoice
+        {
+            const res = await cookyFetch(urlPrefix+'/.bip270/inv', { 
+                signal: abortController.signal, 
+                method: 'POST',
+                headers:{ 'Content-Type': 'application/x-www-form-urlencoded' },    
+                body: new URLSearchParams({ urlPath: '/elephant.jpg' })
+            });
 
-    //         assertEquals(res.status, 200);
-    //         const body = await res.json();
-    //         assertEquals(body.ref !== undefined, true);
-    //         invoice = body;
-    //     }
-    //     {
-    //         const res = await cookyFetch(urlPrefix+'/.bip270/inv/devpay?ref='+invoice.ref, { signal: abortController.signal });
-    //         assertEquals(res.status, 200);
+            assertEquals(res.status, 200);
+            const body = await res.json();
+            assertEquals(body.ref !== undefined, true);
+            invoice = body;
+        }
+        {
+            const res = await cookyFetch(urlPrefix+'/.bip270/inv/devpay?ref='+invoice.ref, { signal: abortController.signal });
+            assertEquals(res.status, 200);
 
-    //         const body = await res.text();
-    //         assertStringIncludes(body, '');
-    //     }
-    // }
+            const body = await res.text();
+            assertStringIncludes(body, '');
+        }
+    }
 
     {
         await appState.copyFromSessionDbs(abortController.signal);
@@ -119,6 +121,7 @@ try {
         const dbPath = path.join(sitePathLocal, 'sweb.db');
         const swebDb = openDb(SwebDbModule, dbPath);
         assertEquals(swebDb.invoices.listInvoices().length, 3);
+        swebDb.db.close();
     }
 } catch (error) {
     throw error;

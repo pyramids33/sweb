@@ -1,10 +1,11 @@
 import * as commander from "npm:commander";
 import * as path from "/deps/std/path/mod.ts";
+import { hexToBuffer } from "/deps/hextools/mod.ts";
 
 import bsv from "npm:bsv";
 
 import SwebDbModule from "./swebdb.ts";
-import { InvoiceRow } from "./invoicesdb.ts";
+import { InvoiceRow, InvoiceSpec } from "./invoicesdb.ts";
 
 import { openDb } from "/lib/database/mod.ts";
 import { tryStatSync } from "/lib/trystat.ts";
@@ -29,6 +30,9 @@ import {
     validateXprv,
     validateFormat
 } from "./cli_helpers.ts"
+
+import { buildTransaction } from "./txbuild.ts";
+
 
 /*
 init
@@ -270,22 +274,100 @@ mainCmd.command('getpayments')
         }
 
         deleteList = [];
+        
+        const invoices = responseObj.map((x) => { 
+            return { ...x, txbuf: (x.txbuf ? bsv.deps.Buffer.from(x.txbuf, 'hex') : undefined) } 
+        }) as InvoiceRow[];
 
-        const invoices = responseObj as InvoiceRow[];
-
+        console.log(invoices);
+        
         if (invoices.length === 0) {
             break;
         }
+
         const sum = invoices.reduce((p,c) => p + c.subtotal, 0);
+
         console.log('received '+invoices.length+' invoices. (' + sum.toString() + ' sats)')
         
-        swebDb.db.transaction(function () {
-            for (const invoice of invoices) {
+        for (const invoice of invoices) {        
+            swebDb.db.transaction(function () {
                 swebDb.invoices.addInvoice(invoice);
-                deleteList.push(invoice.ref);
-            }
-        })(null);
+                
+                if (invoice.txbuf === undefined) {
+                    console.error('missing tx: '+invoice.ref)
+                    return;
+                }
+
+                const invoiceSpec:InvoiceSpec = JSON.parse(invoice.spec);
+                const tx:bsv.Tx = bsv.Tx.fromBuffer(invoice.txbuf);
+                const txOuts = [...tx.txOuts];
+                const txHash = tx.hash().toString('hex');
+
+                for (const specItem of invoiceSpec.outputs) {
+
+                    const invTxOutNum = txOuts.findIndex((txOut) => 
+                        txOut !== undefined &&
+                        specItem.amount === txOut.valueBn.toNumber() && 
+                        specItem.script === txOut.script.toHex());
+
+                    if (invTxOutNum === -1) {
+                        // shouldnt happen if server validates
+                        console.error('missing output: '+invoice.ref)
+                        continue;
+                    }
+
+                    txOuts[invTxOutNum] = undefined;
+
+                    swebDb.outputs.addOutput({
+                        invTxHash: txHash,
+                        invoiceRef: invoice.ref,
+                        invTxOutNum,
+                        amount: specItem.amount,
+                        drvpath: specItem.drvpath,
+                        xpubstr: specItem.xpubstr,
+                        script: specItem.script,
+                        description: specItem.description  
+                    });
+                }
+            })(null);  
+
+            deleteList.push(invoice.ref); 
+        }
     }
+});
+
+mainCmd.command('redeem')
+.description('create tx spending to address')
+.argument('<address>', 'destination address')
+.action((addressTo, _options, cmd) => {
+    const sitePath = cmd.parent.opts().sitePath;
+    const swebDb = tryOpenDb(sitePath);
+    const tx = buildTransaction(swebDb, bsv.Address.fromString(addressTo));
+
+    // broadcast
+    // update database
+
+    console.log(tx.toString());
+});
+mainCmd.command('processtx')
+.description('mark outputs as spent')
+.argument('<txFile>', 'path to tx file')
+.action((txFilePath, _options, cmd) => {
+    const sitePath = cmd.parent.opts().sitePath;
+    const swebDb = tryOpenDb(sitePath);
+    
+    const txbuf = Deno.readFileSync(txFilePath);
+    const tx = bsv.Tx.fromBuffer(bsv.deps.Buffer.from(txbuf));
+    
+    for (const [ nIn, txIn ] of tx.txIns.entries()) {
+        swebDb.outputs.markSpent(
+            txIn.txHashBuf.toString('hex'), 
+            txIn.txOutNum, 
+            tx.hash().toString('hex'),
+            nIn
+        );
+    }
+
 });
 
 
@@ -359,6 +441,8 @@ mainCmd.command('hdkey')
 });
 
 mainCmd.addCommand(paywallsCmd);
+
+// not implemented
 mainCmd.addCommand(uploadCmd);
 mainCmd.addCommand(downloadCmd);
 mainCmd.addCommand(deleteCmd);

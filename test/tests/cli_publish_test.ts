@@ -81,9 +81,9 @@ try {
     assertEquals(result.stdErrText, '');
     assertStringIncludes(result.stdOutText, 'deletions... 1');
     assertStringIncludes(result.stdOutText, 'renames... 1');
-    assertStringIncludes(result.stdOutText, 'uploads... 9');
+    assertStringIncludes(result.stdOutText, 'uploads... 10');
 
-    assertEquals(siteDb.files.listFiles().length, 10);
+    assertEquals(siteDb.files.listFiles().length, 11);
 
     {   
         const res = await cookyFetch(urlPrefix+'/docs2/test_file2.txt', { signal: abortController.signal });

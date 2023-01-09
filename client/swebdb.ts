@@ -3,7 +3,7 @@ import { Database } from "/deps/sqlite3/mod.ts";
 import MetaDbModule, { MetaDbApi } from "/lib/database/metadb.ts";
 import FilesDbModule, { FilesDbApi } from "./filesdb.ts";
 import InvoicesDbModule, { InvoicesDbApi } from "./invoicesdb.ts";
-
+import InvoiceOutputsDbModule, { InvoiceOutputsDbApi } from "./invoutputsdb.ts";
 
 export interface Config {
     authKey?:string
@@ -15,6 +15,7 @@ export interface SwebDbApi {
     meta:MetaDbApi
     files:FilesDbApi 
     invoices:InvoicesDbApi
+    outputs:InvoiceOutputsDbApi
     getConfig(): Config
 }
 
@@ -22,6 +23,7 @@ export function initSchema (db:Database) {
     MetaDbModule.initSchema(db);
     FilesDbModule.initSchema(db);
     InvoicesDbModule.initSchema(db);
+    InvoiceOutputsDbModule.initSchema(db);
 }
 
 export function getApi (db:Database) : SwebDbApi {
@@ -31,6 +33,7 @@ export function getApi (db:Database) : SwebDbApi {
         meta: metaApi,
         files: FilesDbModule.getApi(db),
         invoices: InvoicesDbModule.getApi(db),
+        outputs: InvoiceOutputsDbModule.getApi(db),
         getConfig () {
             return this.meta.getValue('$.config') as Config
         }
