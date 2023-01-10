@@ -35,15 +35,16 @@ export class SSECache {
         if (this.targets[key]) {
             for (const target of this.targets[key]) {
                 target.dispatchMessage('PAID');
-                target.close().catch(() => {});
+                target.close().catch((e) => { console.error('sse close error',e) });
             }
         }
     }
 
     close () {
+        console.log('close sse');
         for (const targets of Object.values(this.targets)) {
             for (const target of targets) {
-                target.close().catch(() => {});
+                target.close().catch((e) => { console.error('sse close error',e) });
             }
         }
     }

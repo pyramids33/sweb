@@ -114,6 +114,7 @@ export class AppState {
                 let invoices = sessionDb.paidUnreadInvoices(mstime.minsAgo(15));
                 
                 while (invoices.length > 0) {
+
                     siteDb.db.transaction(function () {
                         for (const invoice of invoices) {
                             siteDb.invoices.addInvoice(invoice);
@@ -129,8 +130,12 @@ export class AppState {
                     })(null);
 
                     invoices = sessionDb.paidUnreadInvoices(mstime.minsAgo(15));
-                    
+                   
                     await delay(0);
+
+                    if (abortSignal.aborted) {
+                        break;
+                    }
                 }
 
                 const sessionCheckIn = sessionDb.getCheckIn()

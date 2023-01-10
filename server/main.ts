@@ -7,6 +7,7 @@ import { WorkerCluster } from "/server/cluster.ts";
 import mstime from "/lib/mstime.ts";
 import { sha256hex } from "/lib/hash.ts";
 
+
 if (import.meta.main) {
 
     if (Deno.args.length === 0 || Deno.args[0] === '--help') {
@@ -15,6 +16,11 @@ if (import.meta.main) {
     }
 
     const abortController = new AbortController();
+    
+    Deno.addSignalListener("SIGTERM", () => console.log('aborting SIGTERM'));
+    Deno.addSignalListener("SIGINT", () => console.log('aborting SIGINT'));
+    Deno.addSignalListener("SIGHUP", () => console.log('aborting SIGHUP'));
+
     Deno.addSignalListener("SIGTERM", () => abortController.abort());
     Deno.addSignalListener("SIGINT", () => abortController.abort());
     Deno.addSignalListener("SIGHUP", () => abortController.abort());
@@ -54,8 +60,8 @@ if (import.meta.main) {
 
     } else {
         appState.runSessionDbUncacher(abortController.signal, mstime.mins(10)).catch(console.error);
-        appState.runPaywallFileReloader(mstime.secs(30));
-        appState.runXPubReloader(mstime.secs(30));
+        appState.runPaywallFileReloader(mstime.secs(30)).catch(console.error);
+        appState.runXPubReloader(mstime.secs(30)).catch(console.error);
         await serveSite(appState, {
             abortSignal: abortController.signal,
             onListen: () => {
@@ -63,6 +69,6 @@ if (import.meta.main) {
             }
         });
         appState.close();
-        console.log('M/ server closed');
+        console.log('main:server closed');
     }
 }

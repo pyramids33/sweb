@@ -1,0 +1,397 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-size: .9em;
+}
+
+input, select, textarea {
+    border-width: 1px;
+    padding: .4em .7em;
+}
+
+pre {
+    padding:.3rem;
+    border-width: 1px;
+}
+
+.flexrow {
+    display: flex;
+    align-items: center;
+    gap: .7em;
+}
+
+.flexrow.wrap {
+    flex-wrap: wrap;
+}
+.flexrow.right {
+    justify-content: end;
+}
+.flexrow > .grow,
+.flexcol > .grow {
+    flex: 1;
+}
+.flexcol {
+    display: flex;
+    gap: .7em;
+    flex-direction: column;
+}
+.flexcol > * {
+    margin: 0;
+}
+
+.grid,
+.grid3,
+.grid4,
+.grid5 {
+    display: grid;
+    gap: .7em;
+}
+.grid3{ grid-template-columns: auto auto 1fr; }
+.grid4{ grid-template-columns: auto auto auto 1fr; }
+.grid5{ grid-template-columns: auto auto auto auto 1fr; }
+
+.width-sm {
+    width: 768px;
+}
+.width-sm .img {
+    max-width: 100%;
+}
+
+@media only screen and (max-width: 768px) {
+    .width-sm {
+        width:100%;
+        min-width: 375px;
+    }
+}
+
+.break-word {
+    word-break: break-word;
+}
+.pad1,
+.padded {
+    padding: 1em;
+}
+.pad47,
+.padded47 {
+    padding: .4em .7em;
+}
+.pointer {
+    cursor: pointer;
+}
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden; 
+    text-overflow: ellipsis;
+}
+.scrolly {
+    overflow-x: scroll;
+}
+.nowrap {
+    white-space: nowrap;
+}
+.box {
+    border-width:1px;
+}
+.box.padded {
+    padding: .4em .7em;
+}
+
+.indent1 {
+    padding-left: .5em;
+}
+
+.btn {
+    background: none;
+    padding: .4em .7em;
+    border-width:1px;
+}
+.btn:active {
+    border-width:1px;
+}
+.btns .btn {
+    display: inline-block;
+}
+
+.table {
+    border-width: 1px;
+}
+.table td,
+.table th {
+    border-width: 1px;
+    padding: .4em .7em;
+}
+.table td.aligntop {
+    vertical-align:top;
+}
+
+.crumbs .crumb,
+.crumbs .sep {
+    padding: .3rem;
+}
+
+.md-container img {
+    max-width: 100%;
+}
+.md-container table td,
+.md-container table th {
+    border-width: 1px;
+    padding: .4em .7em;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    padding: 0;
+}
+.detail-grid .title,
+.detail-grid .h1 {
+    grid-column: 1/3;
+    font-weight: bold;
+    border-bottom-width: 1px;
+    padding: .4em .7em;
+}
+.detail-grid .name {
+    grid-column: 1;
+    padding: .4em .7em;
+}
+.detail-grid .value {
+    grid-column: 2;
+    padding: .4em .7em;
+    word-break: break-word;
+}
+.detail-grid .name.valigncenter, 
+.detail-grid .value.valigncenter {
+    display: flex;
+    align-items: center;
+}
+
+/* thumbnail grid */
+
+.thumb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px,1fr));
+    grid-auto-rows: 1fr;
+    gap: 1em;
+}
+.thumb-grid > a {
+    min-width: 160px;
+    min-height: 140px;
+    background-size: cover;
+    background-repeat: no-repeat;
+    border-width: 1px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+.thumb-grid > a:hover  {
+    border-width:1px;
+}
+
+
+
+
+.icon-inline-sm {
+    background-repeat: no-repeat;   
+    display:inline-block;
+    vertical-align: middle;
+    width: 32px;
+    height: 32px;
+    background-size: cover;
+}
+.icon-inline-mini {
+    background-repeat: no-repeat;   
+    display:inline-block;
+    width: 16px;
+    height: 16px;
+    background-size: cover;
+}
+.icon-inline-sm.rnd {
+    border-radius: 2px;
+}
+
+
+.subtle {
+    color:cadetblue;
+}
+.error {
+    color: red;
+}
+.pending {
+    color: darkslateblue;
+}
+.success {
+    color: limegreen;
+}
+.selected {
+    color: whitesmoke;
+}
+.quiet {
+    color: darkslateblue;
+}
+.normal {
+    color: darkgreen;
+}
+.link {
+    color: blue;
+}
+
+.emph {
+    font-weight: bold;
+    color:midnightblue;
+}
+
+body {
+    color: darkgreen;
+    background-color: aliceblue;
+}
+h1, h2, h3 {
+    color: darkgreen;
+}
+a {
+    color: blue;
+}
+a:hover {
+    color: blue;
+    text-decoration: none;
+}
+a.normal:hover {
+    color: darkgreen;
+    text-decoration: none;
+}
+
+input, select, textarea {
+    background-color: snow;
+    border-color: darkseagreen;
+    border-style: solid;
+    border-radius: .5em;
+}
+input:focus{
+    border-color: seagreen;
+    background-color: oldlace;
+}
+pre {
+    background-color: snow;
+    border-color: darkseagreen;
+    border-style: solid;
+    color: darkslateblue;
+}
+
+
+
+.box {
+    background-color:snow;
+    border-color:darkseagreen;
+    border-style: solid;
+    border-radius: .5em;
+}
+
+.box.dropping {
+    border: 2px solid goldenrod;
+}
+
+.selectables > *:hover,
+.selectable:hover {
+    background-color:aliceblue;
+}
+.selectables > .selected,
+.selectable.selected {
+    color:darkgreen;
+    background-color:lemonchiffon;
+}
+.selectables > .selected:hover,
+.selectable.selected:hover {
+    color:darkgreen;
+    background-color:navajowhite;
+}
+
+
+.btn {
+    color: blue;
+    background-color:snow;
+    border-color: darkseagreen;
+    border-style: solid;
+    border-radius: .5em;
+}
+.btn:hover {
+    text-decoration: none;
+    background-color:aliceblue;
+    border-color:darkseagreen;
+    color: blue;
+}
+.btn:active {
+    background-color:navajowhite;
+    border-color: darkseagreen;
+    border-style: solid;
+}
+.btn:disabled {
+    color:#888888;
+    text-decoration: none;
+}
+
+
+
+.table {
+    background-color:snow;
+    border-color: darkseagreen;
+    border-style: solid;
+    border-radius: .5em;
+}
+.table td,
+.table th {
+    background-color:snow;
+    border-color: darkseagreen;
+    border-style: solid;
+}
+.table th,
+.table tr.tableheader td,
+.table tr.tableheader th {
+    font-weight: bold;
+    background-color: snow;
+}
+
+
+
+.crumbs .crumb {
+    color:darkgreen;
+    text-decoration:none;
+}
+.crumbs .crumb:hover {
+    text-decoration:none;
+    color: darkgreen;
+    background-color: snow;
+}
+.crumbs .sep {
+    color: darkgreen;
+}
+
+.detail-grid .title,
+.detail-grid .h1 {
+    background-color: snow;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: darkseagreen;
+}
+.detail-grid .name {
+    background: oldlace;
+}
+
+.thumb-grid > a {
+    background-color: snow;
+    border-color:  darkseagreen;
+    border-style: solid;
+    border-radius: .5em;
+}
+.thumb-grid > a > div {
+    color: snow;
+    background-color:#0F0F0Dcc;
+    border-radius: 0 0 .5em .5em;
+}
+.thumb-grid > a:hover  {
+    border-color:darkgreen;
+}
+.thumb-grid > a:hover > div  {
+    color:navajowhite;
+}
+
+#qrImg img { border-radius:4px; }
+

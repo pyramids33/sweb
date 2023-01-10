@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>402 Payment Required</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="/favicon.ico">
+<style>{{ styles.bootstrap_reboot|safe }}</style>
+<style>{{ styles.base|safe }}</style>
+<style>{{ styles.iconsCss|safe }}</style>
+<style rel="styles" href="/custom402.css"></style>
+</head>
+<body>
+<div class="padded width-sm flexcol">
+    <p><i class="icon-inline-sm icon-payment-required "></i>  &nbsp;<strong>402 Payment Required</strong></p>
+    
+    <div id="loading-invoice">
+        <p>Access to this URL requires a payment.</p>
+        <p>Loading Invoice...</p>
+        <p id="error" class="error"></p>
+    </div>
+    
+    <div id="inv-details" style="display:none">
+        <h4>Access to <span id="urlPath" class="emph"></span> for 6 hours</h4> 
+        <h3><span id="subtotal" class="emph"></span> satoshi</h3>
+    
+        <div id="qrcode" class="flexcol selectable">
+            <div class="detail flexrow" style="align-items: flex-start">
+                <div><a id="QRCode"></a></div>
+            </div>
+            <div>
+                <span class="emph">Scan to Pay</span> with any <span class="emph">BIP270</span> capable <span class="emph">BSV</span> wallet.
+                If the page does not refresh <a href="" onclick="location.reload(true);return false;">click here.</a>
+            </div>
+            <div id="QRMessage" class="flexcol">
+                <div><strong>Recommended Apps</strong></div>
+                <div><i class="icon-inline-sm icon-simplycash" title="simply cash" style="border-radius:4px;"></i> Simply Cash</div>
+            </div>
+            <div>
+                <div><strong>Terms</strong></div>
+                <div>Access is provided on a best effort basis.</div> 
+                <div>Your access token is stored in your browser cookies. If cookies are cleared you lose access.</div> 
+            </div>
+        </div>
+    </div>
+
+    <div id="expired" style="display:none">Invoice Expired. Please reload the page.</div>
+
+</div>
+<script>{{ scripts.qrcodejs|safe }}</script>
+<script>{{ scripts._402js|safe }}</script>
+</body>
+</html>
