@@ -205,13 +205,12 @@ export class AppState {
         Deno.unrefTimer(setTimeout(() => this.runXPubReloader(delayMs).catch(console.error), delayMs));
     }
 
-    close () {
+    closeDbs () {
         this.#siteDb?.db.close();
         this.#countersDb?.db.close();
         for (const [_,value] of Object.entries(this.#sessionDbCache)) {
             value.db.db.close();
         }
-        this.sse.close();
     }
 }
 

@@ -7,6 +7,11 @@ import { WorkerCluster } from "/server/cluster.ts";
 import mstime from "/lib/mstime.ts";
 import { sha256hex } from "/lib/hash.ts";
 
+function onSignal (signal:string, abortController:AbortController, appState:AppState) {
+    console.log(signal);
+    abortController.abort();
+    appState.sse.close();
+}
 
 if (import.meta.main) {
 
@@ -17,17 +22,13 @@ if (import.meta.main) {
 
     const abortController = new AbortController();
     
-    Deno.addSignalListener("SIGTERM", () => console.log('aborting SIGTERM'));
-    Deno.addSignalListener("SIGINT", () => console.log('aborting SIGINT'));
-    Deno.addSignalListener("SIGHUP", () => console.log('aborting SIGHUP'));
-
-    Deno.addSignalListener("SIGTERM", () => abortController.abort());
-    Deno.addSignalListener("SIGINT", () => abortController.abort());
-    Deno.addSignalListener("SIGHUP", () => abortController.abort());
-
     const configFilePath = Deno.args[0];
     const config:Config = JSON.parse(Deno.readTextFileSync(configFilePath));
     const appState = new AppState(config);
+
+    Deno.addSignalListener("SIGTERM", () => onSignal('SIGTERM', abortController, appState));
+    Deno.addSignalListener("SIGINT", () => onSignal('SIGINT', abortController, appState));
+    Deno.addSignalListener("SIGHUP", () => onSignal('SIGHUP', abortController, appState));
 
     if (config.ensureDirs) {
         await appState.sitePath.ensureDirs();
@@ -68,7 +69,7 @@ if (import.meta.main) {
                 console.log(`listening ${config.listenOptions.hostname}:${config.listenOptions.port}`)
             }
         });
-        appState.close();
+        appState.closeDbs();
         console.log('main:server closed');
     }
 }

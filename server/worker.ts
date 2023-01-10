@@ -10,7 +10,7 @@ let appState:AppState;
 
 function close () {
     try {
-        appState?.close();
+        appState?.closeDbs();
         self.postMessage({ message: 'closed' });
     } catch { /** */ }
 }
@@ -43,6 +43,7 @@ function onMessage (event:MessageEvent) {
     if (event.data.message === 'close') {
         self.postMessage({ message: 'closing' });
         abortController.abort();
+        appState.sse.close();
     }
 }
 

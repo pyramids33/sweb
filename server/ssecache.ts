@@ -7,9 +7,7 @@ export class SSECache {
 
     targets:Record<string,ServerSentEventTarget[]> = {};
 
-    constructor () {
-
-    }
+    constructor () {}
 
     addTarget (key:string, target:ServerSentEventTarget) {
         if (this.targets[key] === undefined) {
