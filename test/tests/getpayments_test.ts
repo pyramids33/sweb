@@ -104,7 +104,6 @@ try {
             assertStringIncludes(body, '');
         }
     }
-
     {
         await appState.copyFromSessionDbs(abortController.signal);
         //console.log(siteDb.db.inTransaction)
@@ -123,12 +122,14 @@ try {
         assertEquals(swebDb.invoices.listInvoices().length, 3);
         swebDb.db.close();
     }
+    
 } catch (error) {
     throw error;
 } finally {
+    appState.sse.close();
     abortController.abort();
     await serverClosed;
-    appState.close();
+    appState.closeDbs();
 }
 
 console.log(testName, 'passed');

@@ -54,7 +54,7 @@ delete
 rename
 */
 
-export const mainCmd = new commander.Command('db');
+export const mainCmd = new commander.Command('sweb');
 mainCmd.requiredOption('-s --sitePath <sitePath>', 'path to local site root', '.');
 
 mainCmd.command('init')

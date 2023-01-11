@@ -116,7 +116,7 @@ export class SiteMap {
                 const mimeType = mime.contentType('.html');
                 return {
                     dbRelativePath,
-                    urlPath,
+                    urlPath: trims(urlPath, { suffix: '/' }) + '/',
                     storagePath,
                     isDirectory: true,
                     mimeType

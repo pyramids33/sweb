@@ -39,7 +39,7 @@ export class SSECache {
     }
 
     close () {
-        console.log('close sse');
+        //console.log('close sse');
         for (const targets of Object.values(this.targets)) {
             for (const target of targets) {
                 target.close().catch((e) => { console.error('sse close error',e) });

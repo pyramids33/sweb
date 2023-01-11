@@ -81,9 +81,9 @@ try {
     assertEquals(result.stdErrText, '');
     assertStringIncludes(result.stdOutText, 'deletions... 1');
     assertStringIncludes(result.stdOutText, 'renames... 1');
-    assertStringIncludes(result.stdOutText, 'uploads... 10');
+    assertStringIncludes(result.stdOutText, 'uploads... 11');
 
-    assertEquals(siteDb.files.listFiles().length, 11);
+    assertEquals(siteDb.files.listFiles().length, 12);
 
     {   
         const res = await cookyFetch(urlPrefix+'/docs2/test_file2.txt', { signal: abortController.signal });
@@ -104,7 +104,7 @@ try {
 } finally {
     abortController.abort();
     await serverClosed;
-    appState.close();
+    appState.closeDbs();
 }
 
 console.log(testName, 'passed');

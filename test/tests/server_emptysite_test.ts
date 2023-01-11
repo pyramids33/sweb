@@ -75,6 +75,6 @@ try {
 } finally {
     abortController.abort();
     await serverClosed;
-    appState.close();
+    appState.closeDbs();
 }
 console.log(testName, 'passed');

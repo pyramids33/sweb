@@ -78,6 +78,13 @@ const expected = [
       "mimeType": "text/plain; charset=UTF-8"
     },
     {
+      "hash": "1b83f4c630c8befc47577c5f09d88aaf982ea14278cb2de3fa39fd1a25593a34",
+      "mimeType": "text/html; charset=UTF-8",
+      "size": 66,
+      "storagePath": "docs2/default.html",
+      "urlPath": "/docs2/",
+    },
+    {
       "urlPath": "/docs2/test_file1.txt",
       "hash": "124838f79fb0db37d9f957f7da9542c0ad8fb031a8cde269cde3f57016374caa",
       "size": 24,
