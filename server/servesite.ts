@@ -1,4 +1,4 @@
-import { Application, Context } from "/deps/oak/mod.ts";
+import { Application, Context, isHttpError } from "/deps/oak/mod.ts";
 
 import { AppState, RequestState } from "/server/appstate.ts";
 import { getContentRouter } from "/server/routers/content.ts";
@@ -18,7 +18,8 @@ export function serveSite (appState:AppState, options:serveSiteOptions={}) {
 
     const app = new Application<RequestState>({ 
         keys: config.cookieSecret, 
-        contextState: "empty"
+        contextState: "empty",
+        logErrors: false
     });
 
     app.use(async (ctx:Context, next:Next) => {
