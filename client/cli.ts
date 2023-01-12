@@ -97,6 +97,7 @@ mainCmd.command('init')
     const siteMap = new SiteMap(sitePath);
     await reIndexSiteMap(siteMap, swebDb);
 
+    swebDb.db.close();
 });
 
 
@@ -122,6 +123,7 @@ mainCmd.command('sitemap')
     } else if (options.format === 'json') {
         console.log(JSON.stringify(filesList,null,2));
     }
+    swebDb.db.close();
 });
 
 
@@ -166,6 +168,7 @@ mainCmd.command('reindex')
 
         console.log('server', responseObj);
     }
+    swebDb.db.close();
 });
 
 
@@ -188,6 +191,7 @@ mainCmd.command('diff')
     for (const item of uploads) {
         console.log('upload', item.urlPath);
     }
+    swebDb.db.close();
 });
 
 
@@ -250,6 +254,7 @@ mainCmd.command('publish')
             swebDb.files.server.upsertFile(item);
         }
     }
+    swebDb.db.close();
 });
 
 
@@ -278,7 +283,7 @@ mainCmd.command('getpayments')
             return { ...x, txbuf: (x.txbuf ? bsv.deps.Buffer.from(x.txbuf, 'hex') : undefined) } 
         }) as InvoiceRow[];
 
-        console.log(invoices);
+        //console.log(invoices);
         
         if (invoices.length === 0) {
             break;
@@ -333,6 +338,7 @@ mainCmd.command('getpayments')
             deleteList.push(invoice.ref); 
         }
     }
+    swebDb.db.close();
 });
 
 mainCmd.command('redeem')
@@ -347,6 +353,7 @@ mainCmd.command('redeem')
     // update database
 
     console.log(tx.toString());
+    swebDb.db.close();
 });
 mainCmd.command('processtx')
 .description('mark outputs as spent')
@@ -366,7 +373,7 @@ mainCmd.command('processtx')
             nIn
         );
     }
-
+    swebDb.db.close();
 });
 
 
@@ -391,6 +398,7 @@ const configCmd = mainCmd.command('config')
             swebDb.meta.removeValue(key);
         }
     }
+    swebDb.db.close();
 });
 
 configCmd.command('show')
@@ -409,6 +417,7 @@ configCmd.command('show')
             console.log('  '+name,'=',value);
         }
     }
+    swebDb.db.close();
 });
 
 
@@ -437,6 +446,7 @@ mainCmd.command('hdkey')
         swebDb.meta.setValue('$.hdkeys.'+xprv.toPublic().toString(), xprv.toString());
         Deno.writeTextFileSync(path.join(sitePath,'xpub.txt'), xprv.toPublic().toString());
     }
+    swebDb.db.close();
 });
 
 mainCmd.addCommand(paywallsCmd);

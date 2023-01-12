@@ -15,7 +15,6 @@ paywallsCmd.command('add')
 .argument('[address]', 'address or paymail')
 .action((pattern, amount, description, address, _options, cmd) => {
     const sitePath = cmd.parent.parent.opts().sitePath;
-    
     const output = PaywallFile.ObjectToPaywallOutput({ amount, description, address });
     
     if (output.amount < 0) {
@@ -23,7 +22,6 @@ paywallsCmd.command('add')
     }
 
     const paywallFile = getPaywallFile(sitePath);
-
     const spec = paywallFile.getPaywall(pattern);
     
     if (spec === undefined) {
