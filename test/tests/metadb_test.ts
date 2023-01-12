@@ -2,8 +2,8 @@ import { emptyDirSync } from '/deps/std/fs/mod.ts';
 import { assertEquals } from '/deps/std/testing/asserts.ts';
 import * as path from '/deps/std/path/mod.ts';
 
-import MetaDbModule from "/lib/database/metadb.ts";
-import { openDb } from '../../lib/database/mod.ts';
+import MetaDbModule from '/lib/database/metadb.ts';
+import { openDb } from '/lib/database/mod.ts';
 
 // create a empty directory for test data
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
@@ -44,5 +44,7 @@ assertEquals(cfg, {
     v4: '{"v":4}', 
     v5: { v: 5 } 
 });
+
+metaDb.db.close();
 
 console.log(testName, 'passed');

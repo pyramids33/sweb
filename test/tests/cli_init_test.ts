@@ -46,4 +46,6 @@ assertEquals(config, { siteUrl: "http://127.0.0.1:8098", authKey: "aabbccddee" }
 const xpubText = Deno.readTextFileSync(path.join(sitePath, 'xpub.txt'));
 assertEquals(xpubText.slice(0,4), 'xpub');
 
+swebDb.db.close();
+
 console.log(testName, 'passed');

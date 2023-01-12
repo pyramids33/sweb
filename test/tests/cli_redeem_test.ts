@@ -45,5 +45,5 @@ assertEquals(list.length, 3);
     const list = swebDb.outputs.list().filter(x => x.redeemTxHash);
     assertEquals(list.length, 3);
 }
-
+swebDb.db.close();
 console.log(testName, 'passed');

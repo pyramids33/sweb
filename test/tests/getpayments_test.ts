@@ -12,7 +12,7 @@ import { CommandRunner } from '../commandrunner.ts';
 import { ApiClient } from "/client/apiclient.ts";
 import SwebDbModule from "/client/swebdb.ts";
 
-import { openDb } from "../../lib/database/mod.ts";
+import { openDb } from "/lib/database/mod.ts";
 
 // create a empty directory for test data
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
@@ -122,7 +122,7 @@ try {
         assertEquals(swebDb.invoices.listInvoices().length, 3);
         swebDb.db.close();
     }
-    
+
 } catch (error) {
     throw error;
 } finally {

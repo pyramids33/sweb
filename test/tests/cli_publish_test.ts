@@ -102,6 +102,7 @@ try {
 } catch (error) {
     throw error;
 } finally {
+    appState.sse.close();
     abortController.abort();
     await serverClosed;
     appState.closeDbs();
