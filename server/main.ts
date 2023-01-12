@@ -38,9 +38,6 @@ if (import.meta.main) {
         appState.openSiteDb().meta.setValue('$.config.authKeyHash', sha256hex(config.initAuthKey));
     }
 
-    // only in main, not worker
-    appState.runSessionDbCopier(abortController.signal, 60000).catch(console.error); 
-
     if (config.workers && config.workers.length > 0) {
 
         const workers = [ ...config.workers ];
@@ -60,16 +57,21 @@ if (import.meta.main) {
         Deno.addSignalListener("SIGHUP", () => cluster.close());
 
     } else {
+        
+        appState.runSessionDbCopier(abortController.signal, 60000).catch(console.error); // only in main, not worker
         appState.runSessionDbUncacher(abortController.signal, mstime.mins(10)).catch(console.error);
         appState.runPaywallFileReloader(mstime.secs(30)).catch(console.error);
         appState.runXPubReloader(mstime.secs(30)).catch(console.error);
+
         await serveSite(appState, {
             abortSignal: abortController.signal,
             onListen: () => {
                 console.log(`listening ${config.listenOptions.hostname}:${config.listenOptions.port}`)
             }
         });
+
         appState.closeDbs();
+
         console.log('main:server closed');
     }
 }

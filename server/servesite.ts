@@ -35,15 +35,11 @@ export function serveSite (appState:AppState, options:serveSiteOptions={}) {
     const contentRouter = getContentRouter();
     app.use(contentRouter.routes());
 
-    if (options.onListen){
+    if (options.onListen) {
         app.addEventListener("listen", options.onListen);
     }
 
-    const serverClosed = app.listen({ 
-        hostname: config.listenOptions.hostname, 
-        port: config.listenOptions.port,
-        signal: options.abortSignal
-    });
+    const serverClosed = app.listen({ ...config.listenOptions, signal: options.abortSignal });
 
     return serverClosed;
 }

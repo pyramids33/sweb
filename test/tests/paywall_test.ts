@@ -11,9 +11,13 @@ pwf.addPaywall('/test1/abc/x/', { outputs: [ { amount: 1 } ] });
 pwf.addPaywall('/test1/*/x/', { outputs: [ { amount: 1 } ] });
 pwf.addPaywall('/test1/*/x/fx', { outputs: [ { amount: 1 } ] });
 pwf.addPaywall('/test1/*/x/special/', { outputs: [ { amount: 1 } ] });
+pwf.addPaywall('/images', { outputs: [ { amount: 1 } ] });
 
 {
     const expected = {
+        "images": {
+            "outputs": [{"amount": 1}],
+        },
         "test1": {
             "/": {
                 "abc": {
@@ -39,6 +43,7 @@ pwf.addPaywall('/test1/*/x/special/', { outputs: [ { amount: 1 } ] });
 }
 {
     const expected = {
+        "/images": {"outputs": [{"amount": 1}]},
         "/test1/abc/x": {"outputs": [{"amount": 1}]},
         "/test1/*/x":  {"outputs": [{"amount": 1}]},
         "/test1/*/x/fx": {"outputs": [{"amount": 1}]},
@@ -81,8 +86,23 @@ pwf.addPaywall('/test1/*/x/special/', { outputs: [ { amount: 1 } ] });
     // url matches prefix
     const result = pwf.matchUrl('/test1/xyz/x/fx2');
     assertEquals(result, {
-        match: "/test1/xyz/x",
+        match: "/test1/xyz/x/",
         pattern: "/test1/*/x",
+        spec: { outputs: [ { amount: 1 } ] }
+    });
+}
+{
+
+    const result1 = pwf.matchUrl('/images/');
+    const result2 = pwf.matchUrl('/images/volcano.jpeg');
+    assertEquals(result1, {
+        match: "/images/",
+        pattern: "/images",
+        spec: { outputs: [ { amount: 1 } ] }
+    });
+    assertEquals(result2, {
+        match: "/images/",
+        pattern: "/images",
         spec: { outputs: [ { amount: 1 } ] }
     });
 }

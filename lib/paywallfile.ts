@@ -30,7 +30,7 @@ export class PaywallFile {
     constructor () {}
 
     matchUrl (urlPath:string) : MatchResult|undefined {
-        const segments = urlPath.slice(1).split('/');
+        const segments = urlPath.slice(1).split('/').filter(s => s);
         let node:PaywallNode = { "/": this.paywalls };
         const match = [];
         const pattern = [];
@@ -60,8 +60,14 @@ export class PaywallFile {
             return undefined;
         }
 
+        let tmpMatchStr = '/' + match.join('/');
+
+        if (tmpMatchStr !== urlPath) {
+            tmpMatchStr = tmpMatchStr + '/'
+        }
+
         return {
-            match: '/' + match.join('/') + (urlPath.endsWith('/') ? '/' : ''),
+            match: tmpMatchStr,
             pattern: '/' + pattern.join('/'),
             spec: { outputs: node.outputs }
         }

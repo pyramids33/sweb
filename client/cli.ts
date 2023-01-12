@@ -1,6 +1,5 @@
 import * as commander from "npm:commander";
 import * as path from "/deps/std/path/mod.ts";
-import { hexToBuffer } from "/deps/hextools/mod.ts";
 
 import bsv from "npm:bsv";
 

@@ -5,7 +5,8 @@ import bsv from "npm:bsv";
 
 import SwebDbModule, { SwebDbApi } from "./swebdb.ts";
 import { ApiClient } from "./apiclient.ts";
-import { ChangeDetector, SiteMap } from "./sitemap.ts"
+import { ChangeDetector } from "./changedetector.ts";
+import { SiteMap } from "./sitemap.ts";
 
 import { openDb } from "/lib/database/mod.ts";
 import { PaywallFile } from "../lib/paywallfile.ts";
