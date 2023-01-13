@@ -1,3 +1,4 @@
+import * as path from '/deps/std/path/mod.ts';
 
 import { serveSite } from "/server/servesite.ts";
 import { AppState } from "/server/appstate.ts";
@@ -6,6 +7,8 @@ import { WorkerCluster } from "/server/cluster.ts";
 
 import mstime from "/lib/mstime.ts";
 import { sha256hex } from "/lib/hash.ts";
+
+const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
 
 function onSignal (signal:string, abortController:AbortController, appState:AppState) {
     console.log(signal);
@@ -24,6 +27,11 @@ if (import.meta.main) {
     
     const configFilePath = Deno.args[0];
     const config:Config = JSON.parse(Deno.readTextFileSync(configFilePath));
+
+    if (config.staticPath === undefined) {
+        config.staticPath = path.join(__dirname, 'static');
+    }
+
     const appState = new AppState(config);
 
     Deno.addSignalListener("SIGTERM", () => onSignal('SIGTERM', abortController, appState));

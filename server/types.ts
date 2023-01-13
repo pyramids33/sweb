@@ -13,8 +13,9 @@ export interface Config {
     workers?: { port:number }[]
     cookieSecret: string[]
     env: string
+    logErrors?:boolean
     sitePath: string
-    staticPath: string
+    staticPath?: string
     domain: string 
     ensureDirs?: boolean
     initAuthKey?: string
