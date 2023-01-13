@@ -30,11 +30,11 @@ async function allowCORS (ctx:Context, next:Next) {
     await next();
 }
 
-export function validatePayment (invoiceSpec:InvoiceSpecItem[], tx:bsv.Transaction) : { error?: string } {
+export function validatePayment (invSpecItems:InvoiceSpecItem[], tx:bsv.Transaction) : { error?: string } {
     const txOuts:bsv.TxOut[] = [...tx.txOuts];
     let missingOutput = false;
 
-    for (const specItem of invoiceSpec) {
+    for (const specItem of invSpecItems) {
         const n = tx.txOuts.findIndex((txOut:bsv.TxOut) => 
             specItem.amount === txOut.valueBn.toNumber() && specItem.script === txOut.script.toHex());
 
@@ -211,16 +211,17 @@ export function getBip270Router () : Router<RequestState> {
     router.post('/.bip270/inv/pay', allowCORS, async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const config = app.config;
-        const body = Object.fromEntries(await ctx.request.body({ type: "form" }).value);
-        
-        if (!body.sessionId || !id128.Ulid.isCanonical(body.sessionId)) {
+        const body = await ctx.request.body({ type: "json" }).value;
+        const query = Object.fromEntries(ctx.request.url.searchParams);
+
+        if (!(query.sessionId && id128.Ulid.isCanonical(query.sessionId))) {
             ctx.response.status = 400;
             return;
         }
 
-        const sessionDb = app.openSessionDb(body.sessionId, { create: false });
+        const sessionDb = app.openSessionDb(query.sessionId, { create: false });
 
-        const invoice = sessionDb.invoiceByRef(body.ref);
+        const invoice = sessionDb.invoiceByRef(query.ref);
     
         if (invoice === undefined || invoice.paidAt || (Date.now() - invoice.created) > mstime.mins(15)) {
             ctx.response.status = 404;
@@ -235,9 +236,9 @@ export function getBip270Router () : Router<RequestState> {
         }
 
         const txbuf = new Uint8Array(hexToBuffer(body.transaction));
-        const tx:bsv.Tx = bsv.Tx.fromBuffer(txbuf);
+        const tx:bsv.Tx = bsv.Tx.fromHex(txbuf);
 
-        const invSpecItems:InvoiceSpecItem[] = JSON.parse(invoice.spec);
+        const invSpecItems:InvoiceSpecItem[] = JSON.parse(invoice.spec).outputs;
 
         const validationResult = validatePayment(invSpecItems, tx);
 
@@ -284,10 +285,10 @@ export function getBip270Router () : Router<RequestState> {
         ) {
             sessionDb.payInvoice(invoice.ref, Date.now(), 'bip270 ' + mAPIEndpoint.name, tx.id(), txbuf);
 
-            app.sse.onPayment(body.sessionId + ' ' + body.ref);
+            app.sse.onPayment(query.sessionId + ' ' + query.ref);
             
             if (self.postMessage) {
-                self.postMessage({ message: 'payment', target: body.sessionId + ' ' + body.ref });
+                self.postMessage({ message: 'payment', target: query.sessionId + ' ' + query.ref });
             }
 
         } else {
