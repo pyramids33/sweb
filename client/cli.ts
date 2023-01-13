@@ -387,7 +387,7 @@ const configCmd = mainCmd.command('config')
     const sitePath = cmd.parent.opts().sitePath;
     const swebDb = tryOpenDb(sitePath);
 
-    for (const name in ['authKey','siteUrl']) {
+    for (const name of ['authKey','siteUrl']) {
         const key = '$.config.'+name;
 
         if (options[name]) {
