@@ -30,6 +30,7 @@ export class SSECache {
     }
 
     onPayment (key:string) {
+        console.log('onPayment', key, this.targets[key]?.length);
         if (this.targets[key]) {
             for (const target of this.targets[key]) {
                 target.dispatchMessage('PAID');

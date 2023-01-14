@@ -4,7 +4,7 @@ import { SwebDbApi } from "./swebdb.ts";
 
 export function buildTransaction (swebDb:SwebDbApi, addressTo:bsv.Address) : bsv.Tx {
 
-    const feePerKbNum = bsv.Constants.feePerKbNum;
+    const feePerKbNum = bsv.Constants.Default.TxBuilder.feePerKbNum;
     const hashCache = {};
     const invOutputs = [];
 

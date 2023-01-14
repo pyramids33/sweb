@@ -3,7 +3,7 @@ import * as path from "/deps/std/path/mod.ts";
 
 import bsv from "npm:bsv";
 
-import SwebDbModule from "./swebdb.ts";
+import SwebDbModule, { SwebDbApi } from "./swebdb.ts";
 import { InvoiceRow, InvoiceSpec } from "./invoicesdb.ts";
 
 import { openDb } from "/lib/database/mod.ts";
@@ -27,10 +27,12 @@ import {
     tryGetApiClient,
     tryOpenDb,
     validateXprv,
-    validateFormat
+    validateFormat,
+    processTx
 } from "./cli_helpers.ts"
 
 import { buildTransaction } from "./txbuild.ts";
+import { trims } from "../lib/trims.ts";
 
 
 /*
@@ -342,40 +344,98 @@ mainCmd.command('getpayments')
 });
 
 mainCmd.command('redeem')
-.description('create tx spending to address')
-.argument('<address>', 'destination address')
-.action((addressTo, _options, cmd) => {
+.description('create tx spending to address (tx hex is printed to stdout)')
+.requiredOption('-a --address <address>', 'destination address to redeem (if unspecified in paywall.json)')
+.option('-b --broadcast [url]', 'broadcast the transaction', false)
+.option('-p --process', 'process thes transaction (if broadcast succeeds)', false)
+.option('-o --outputPath', 'path to save tx as a binary file')
+.action(async (options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
     const swebDb = tryOpenDb(sitePath);
-    const tx = buildTransaction(swebDb, bsv.Address.fromString(addressTo));
-
-    // broadcast
-    // update database
-
+    const tx = buildTransaction(swebDb, bsv.Address.fromString(options.address));
+    
     console.log(tx.toString());
-    swebDb.db.close();
-});
-mainCmd.command('processtx')
-.description('mark outputs as spent')
-.argument('<txFile>', 'path to tx file')
-.action((txFilePath, _options, cmd) => {
-    const sitePath = cmd.parent.opts().sitePath;
-    const swebDb = tryOpenDb(sitePath);
     
-    const txbuf = Deno.readFileSync(txFilePath);
-    const tx = bsv.Tx.fromBuffer(bsv.deps.Buffer.from(txbuf));
-    
-    for (const [ nIn, txIn ] of tx.txIns.entries()) {
-        swebDb.outputs.markSpent(
-            txIn.txHashBuf.toString('hex'), 
-            txIn.txOutNum, 
-            tx.hash().toString('hex'),
-            nIn
-        );
+    let broadcastSuccess = false;
+
+    if (options.broadcast) {    
+        let broadcastUrl = 'https://api.whatsonchain.com/v1/bsv/main/tx/raw';
+        
+        if (typeof(options.broadcast)==='string') {
+            broadcastUrl = options.broadcast;
+        }
+
+        const res = await fetch(broadcastUrl, { 
+            method: 'POST',
+            body: JSON.stringify({ txhex: tx.toString() }),
+            headers: { "content-type": "application/json" }
+        });
+
+        const txId = tx.id();
+        const bodyText = (await res.text()).trim();
+
+        if (bodyText.trim() === txId || bodyText.trim() === '"'+txId+'"') {
+            broadcastSuccess = true;
+        } else {
+            console.error('broadcast failed: '+bodyText);
+        }
     }
+
+    if (options.process && broadcastSuccess) {
+        processTx(swebDb, tx);
+    } 
+
     swebDb.db.close();
 });
 
+mainCmd.command('processtx')
+.description('process a tx, marking outputs as spent. (the tx should have already been broadcast)')
+.option('-u --url <url>', 'url to download transaction from')
+.option('-f --filePath <filePath>', 'file path of the transaction')
+.action(async (options, cmd) => {
+    const sitePath = cmd.parent.opts().sitePath;
+
+    let tx;
+    
+    if (options.filePath) {
+        const txbuf = Deno.readFileSync(options.filePath);
+        tx = bsv.Tx.fromBuffer(bsv.deps.Buffer.from(txbuf));
+    } else if (options.url) {
+        const res = await fetch(options.url);
+        if (res.ok) {
+            const bodyText = await res.text();
+            tx = bsv.Tx.fromHex(bodyText);
+        } else {
+            console.error(res.statusText);
+            Deno.exit(1);
+        }
+    }
+    if (tx === undefined) {
+        console.error('error: unable to source transaction');
+    }
+
+    const swebDb = tryOpenDb(sitePath);
+    processTx(swebDb, tx);
+    swebDb.db.close();
+});
+
+mainCmd.command('show-outputs')
+.description('show txoutputs')
+.action((_options, cmd) => {
+    const sitePath = cmd.parent.opts().sitePath;
+    const swebDb = tryOpenDb(sitePath);
+    console.log(swebDb.db.prepare('select * from invoiceOutputs order by invoiceRef,invTxOutNum').all())
+    swebDb.db.close();
+});
+
+mainCmd.command('show-invoices')
+.description('show invoices')
+.action((_options, cmd) => {
+    const sitePath = cmd.parent.opts().sitePath;
+    const swebDb = tryOpenDb(sitePath);
+    console.log(swebDb.db.prepare('select ref,created,domain,urlPath,subtotal,paidAt,paymentMethod,txid from invoices order by ref').all())
+    swebDb.db.close();
+});
 
 const configCmd = mainCmd.command('config')
 .addOption(configOptions.siteUrl)

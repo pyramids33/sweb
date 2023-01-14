@@ -156,6 +156,17 @@ export async function reIndexSiteMap (siteMap:SiteMap, swebDb:SwebDbApi) {
     return results;
 }
 
+export function processTx (swebDb:SwebDbApi, tx:bsv.Tx) {
+    for (const [ nIn, txIn ] of tx.txIns.entries()) {
+        swebDb.outputs.markSpent(
+            txIn.txHashBuf.toString('hex'), 
+            txIn.txOutNum, 
+            tx.hash().toString('hex'),
+            nIn
+        );
+    }
+}
+
 // function prettyFiles (obj) {
 //     // pretty print for getfiles command
 //     let out = Object.keys(obj.files)

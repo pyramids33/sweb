@@ -215,6 +215,7 @@ export function getBip270Router () : Router<RequestState> {
         const query = Object.fromEntries(ctx.request.url.searchParams);
 
         if (!(query.sessionId && id128.Ulid.isCanonical(query.sessionId))) {
+            console.log('invalid session id');
             ctx.response.status = 400;
             return;
         }
@@ -224,6 +225,7 @@ export function getBip270Router () : Router<RequestState> {
         const invoice = sessionDb.invoiceByRef(query.ref);
     
         if (invoice === undefined || invoice.paidAt || (Date.now() - invoice.created) > mstime.mins(15)) {
+            console.log('invalid invoice');
             ctx.response.status = 404;
             return;
         }
@@ -231,18 +233,20 @@ export function getBip270Router () : Router<RequestState> {
         const mAPIEndpoint = config.mAPIEndpoints[endpointNum];
         
         if (typeof(body.transaction) !== 'string') {
+            console.log('invalid transaction');
             ctx.response.status = 400;
             return;
         }
 
         const txbuf = new Uint8Array(hexToBuffer(body.transaction));
-        const tx:bsv.Tx = bsv.Tx.fromHex(txbuf);
+        const tx:bsv.Tx = bsv.Tx.fromHex(body.transaction);
 
         const invSpecItems:InvoiceSpecItem[] = JSON.parse(invoice.spec).outputs;
 
         const validationResult = validatePayment(invSpecItems, tx);
 
         if (validationResult.error) {
+            console.log(validationResult);
             ctx.response.status = 200;
             ctx.response.type = "json";
             ctx.response.body = { payment: body, memo: validationResult.error, error: 1 }
@@ -258,6 +262,7 @@ export function getBip270Router () : Router<RequestState> {
                 headers: mAPIEndpoint.extraHeaders 
             });
         } catch {
+            console.log('broadcast failed');
             endpointNum = (endpointNum + 1) % config.mAPIEndpoints.length;
             ctx.response.status = 200;
             ctx.response.type = "json";
@@ -272,6 +277,7 @@ export function getBip270Router () : Router<RequestState> {
             mapiResBody = await mapiRes.json();
             payload = JSON.parse(mapiResBody.payload);
         } catch {
+            console.log('error parsing mapi response',mapiResBody,payload);
             ctx.response.status = 200;
             ctx.response.type = "json";
             ctx.response.body = { payment: body, memo: 'error parsing mapi response', error: 3 };
@@ -289,9 +295,10 @@ export function getBip270Router () : Router<RequestState> {
             
             if (self.postMessage) {
                 self.postMessage({ message: 'payment', target: query.sessionId + ' ' + query.ref });
-            }
+            } 
 
         } else {
+            console.log('error payload',payload);
             ctx.response.status = 200;
             ctx.response.type = "json";
             ctx.response.body = { payment: body, memo: payload.resultDescription, error: 4 };
