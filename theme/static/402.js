@@ -37,7 +37,9 @@ function showInvoice (invoice) {
 
     evtSource.onmessage = function(event) {
         console.log('message', event.data);
-        location.reload();
+        if (event.data === 'PAID') {
+            location.reload();
+        }
     };
 
     evtSource.onopen = function() {

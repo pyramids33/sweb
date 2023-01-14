@@ -20,8 +20,8 @@ vars.styles.bootstrap_reboot = Deno.readTextFileSync(path.join(__dirname, 'stati
 vars.styles.base = Deno.readTextFileSync(path.join(__dirname, 'static', 'base.css'));
 
 vars.scripts = {};
-vars.scripts.qrcodejs = Deno.readTextFileSync(path.join(__dirname, 'qrcode.min.js'));
-vars.scripts._402js = Deno.readTextFileSync(path.join(__dirname, '402.js'));
+vars.scripts.qrcodejs = Deno.readTextFileSync(path.join(__dirname, 'static', 'qrcode.min.js'));
+vars.scripts._402js = Deno.readTextFileSync(path.join(__dirname, 'static', '402.js'));
 
 vars.styles.iconsCss = [
     ['payment-required', 'static/paymentrequired.png'],
@@ -35,4 +35,4 @@ vars.styles.iconsCss = [
 const nj = nunjucks.configure([__dirname], { autoescape: true });
 const html = nj.render('templates/402.njk', vars);
 
-Deno.writeFileSync(Deno.args[0], html);
+Deno.writeTextFileSync(Deno.args[0], html);

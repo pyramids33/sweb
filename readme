@@ -2,3 +2,5 @@
 
 deno install --allow-all --unstable -n swebsvr ./server/main.ts
 deno install --allow-all --unstable -n sweb ./client/main.ts
+
+deno run --allow-all --unstable ./test/all_tests.ts

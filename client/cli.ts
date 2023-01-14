@@ -342,7 +342,7 @@ mainCmd.command('getpayments')
                         continue;
                     }
 
-                    txOuts[invTxOutNum] = undefined;
+                    txOuts[invTxOutNum] = undefined; // only match it once
 
                     swebDb.outputs.addOutput({
                         invTxHash: txHash,

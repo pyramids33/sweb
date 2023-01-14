@@ -24,7 +24,7 @@ let tx;
 const txPath = path.join(testPath,'tx.bin');
 
 {
-    const result = await cmd.run(execPath, 'redeem', '12tPpMWubbAnbSfbtVr9NJBP526W9aKppt', '--sitePath', sitePath);
+    const result = await cmd.run(execPath, 'redeem', '--address', '12tPpMWubbAnbSfbtVr9NJBP526W9aKppt', '--sitePath', sitePath);
     assertEquals(result.status.success, true);
     assertEquals(result.status.code, 0);
     assertEquals(result.stdErrText, '');
@@ -37,7 +37,7 @@ const list = swebDb.outputs.list().filter(x => x.redeemTxHash === null);
 assertEquals(list.length, 3);
 
 {
-    const result = await cmd.run(execPath, 'processtx', txPath, '--sitePath', sitePath);
+    const result = await cmd.run(execPath, 'processtx', '--filePath', txPath, '--sitePath', sitePath);
     assertEquals(result.status.success, true);
     assertEquals(result.status.code, 0);
     assertEquals(result.stdErrText, '');
