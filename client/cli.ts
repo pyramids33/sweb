@@ -291,22 +291,36 @@ mainCmd.command('getpayments')
         //console.log(invoices);
 
         // prevent infinite loop, should not get the same twice
-        if (invoices.length === 0 || invoices[0].ref === lastRefReceived) {
+        if (invoices.length > 0) {
+            if (invoices[0].ref === lastRefReceived) {
+                break;
+            }
+            lastRefReceived = invoices[0].ref;
+        }
+
+        console.log('received '+invoices.length+' invoice payments.');
+
+        if (invoices.length === 0) {
             break;
         }
 
-        lastRefReceived = invoices[0].ref;
-
-        const sum = invoices.reduce((p,c) => c.paidAt ? p + c.subtotal : p, 0);
-
-        console.log('received '+invoices.length+' invoices. (' + sum.toString() + ' sats)')
+        let paidSum = 0;
+        let paidCount = 0;
+        let unpaidCount = 0;
         
         for (const invoice of invoices) {        
+
+            if (invoice.paidAt) {
+                paidCount += 1;
+                paidSum += invoice.subtotal||0;
+            } else {
+                unpaidCount += 1;
+            }
+
             swebDb.db.transaction(function () {
                 swebDb.invoices.addInvoice(invoice);
                 
                 if (invoice.txbuf === undefined) {
-                    console.error('missing tx: '+invoice.ref)
                     return;
                 }
 
@@ -345,6 +359,9 @@ mainCmd.command('getpayments')
 
             deleteList.push(invoice.ref); 
         }
+
+        console.log(paidCount.toString() + ' paid, ' + paidSum.toString() + ' sats)');
+        console.log(unpaidCount.toString() + ' unpaid. ');
     }
     swebDb.db.close();
 });
