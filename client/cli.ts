@@ -291,7 +291,7 @@ mainCmd.command('getpayments')
             break;
         }
 
-        const sum = invoices.reduce((p,c) => p + c.subtotal, 0);
+        const sum = invoices.reduce((p,c) => c.paidAt ? p + c.subtotal : p, 0);
 
         console.log('received '+invoices.length+' invoices. (' + sum.toString() + ' sats)')
         
@@ -346,7 +346,7 @@ mainCmd.command('getpayments')
 mainCmd.command('redeem')
 .description('create tx spending to address (tx hex is printed to stdout)')
 .requiredOption('-a --address <address>', 'destination address to redeem (if unspecified in paywall.json)')
-.option('-b --broadcast [url]', 'broadcast the transaction', false)
+.option('-b --broadcast', 'broadcast the transaction (txid printed to stdout)', false)
 .option('-p --process', 'process thes transaction (if broadcast succeeds)', false)
 .option('-o --outputPath', 'path to save tx as a binary file')
 .action(async (options, cmd) => {
@@ -359,13 +359,7 @@ mainCmd.command('redeem')
     let broadcastSuccess = false;
 
     if (options.broadcast) {    
-        let broadcastUrl = 'https://api.whatsonchain.com/v1/bsv/main/tx/raw';
-        
-        if (typeof(options.broadcast)==='string') {
-            broadcastUrl = options.broadcast;
-        }
-
-        const res = await fetch(broadcastUrl, { 
+        const res = await fetch('https://api.whatsonchain.com/v1/bsv/main/tx/raw', { 
             method: 'POST',
             body: JSON.stringify({ txhex: tx.toString() }),
             headers: { "content-type": "application/json" }
@@ -376,6 +370,7 @@ mainCmd.command('redeem')
 
         if (bodyText.trim() === txId || bodyText.trim() === '"'+txId+'"') {
             broadcastSuccess = true;
+            console.log('txid: '+txId);
         } else {
             console.error('broadcast failed: '+bodyText);
         }
@@ -390,7 +385,7 @@ mainCmd.command('redeem')
 
 mainCmd.command('processtx')
 .description('process a tx, marking outputs as spent. (the tx should have already been broadcast)')
-.option('-u --url <url>', 'url to download transaction from')
+.option('-t --txid <txid>', 'id of transaction to download ')
 .option('-f --filePath <filePath>', 'file path of the transaction')
 .action(async (options, cmd) => {
     const sitePath = cmd.parent.opts().sitePath;
@@ -400,8 +395,8 @@ mainCmd.command('processtx')
     if (options.filePath) {
         const txbuf = Deno.readFileSync(options.filePath);
         tx = bsv.Tx.fromBuffer(bsv.deps.Buffer.from(txbuf));
-    } else if (options.url) {
-        const res = await fetch(options.url);
+    } else if (options.txid) {
+        const res = await fetch('https://api.whatsonchain.com/v1/bsv/main/tx/'+options.txid);
         if (res.ok) {
             const bodyText = await res.text();
             tx = bsv.Tx.fromHex(bodyText);
