@@ -61,7 +61,7 @@ export function getBip270Router () : Router<RequestState> {
     
     router.use(readWriteSessionHeaders);
     
-    router.get('/.bip270/inv/sse', checkSession, function (ctx:Context<RequestState>) {
+    router.get('/.bip270/inv/sse', checkSession, async function (ctx:Context<RequestState>) {
         const session = ctx.state.session!;
         const app = ctx.state.app!;
         const query = Object.fromEntries(ctx.request.url.searchParams);
@@ -81,7 +81,7 @@ export function getBip270Router () : Router<RequestState> {
         if (invoice.paidAt !== undefined && invoice.paidAt !== null) {
             // on iPhone, after switching to app and paying, the connection is closed and reopened.
             // send update if already paid.
-            app.sse.onPayment(key);
+            await app.sse.onPayment(key);
         }
     });
 
@@ -291,7 +291,7 @@ export function getBip270Router () : Router<RequestState> {
         ) {
             sessionDb.payInvoice(invoice.ref, Date.now(), 'bip270 ' + mAPIEndpoint.name, tx.id(), txbuf);
 
-            app.sse.onPayment(query.sessionId + ' ' + query.ref);
+            await app.sse.onPayment(query.sessionId + ' ' + query.ref);
             
             if (self.postMessage) {
                 self.postMessage({ message: 'payment', target: query.sessionId + ' ' + query.ref });
@@ -311,7 +311,7 @@ export function getBip270Router () : Router<RequestState> {
         return;
     });
 
-    router.get('/.bip270/inv/devpay', checkSession, function (ctx:Context<RequestState>) {
+    router.get('/.bip270/inv/devpay', checkSession, async function (ctx:Context<RequestState>) {
         const session = ctx.state.session!;
         const app = ctx.state.app!;
         const config = app.config;
@@ -345,7 +345,7 @@ export function getBip270Router () : Router<RequestState> {
         
         sessionDb.payInvoice(invoice.ref, Date.now(), 'devpay', tx.id(), tx.toBuffer());
 
-        app.sse.onPayment(session.sessionId + ' ' + query.ref);
+        await app.sse.onPayment(session.sessionId + ' ' + query.ref);
         
         if (self.postMessage) {
             self.postMessage({ message: 'payment', target: session.sessionId + ' ' + query.ref });

@@ -16,7 +16,7 @@ function close () {
 }
 
 
-function onMessage (event:MessageEvent) { 
+async function onMessage (event:MessageEvent) { 
     
     if (event.data.message === 'init') {
         const config:Config = event.data.config;
@@ -37,13 +37,13 @@ function onMessage (event:MessageEvent) {
     }
 
     if (event.data.message === 'payment') {
-        appState.sse.onPayment(event.data.target);
+        await appState.sse.onPayment(event.data.target);
     }
 
     if (event.data.message === 'close') {
         self.postMessage({ message: 'closing' });
         abortController.abort();
-        appState.sse.close();
+        await appState.sse.close();
     }
 }
 

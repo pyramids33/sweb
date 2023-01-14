@@ -29,21 +29,29 @@ export class SSECache {
         target.dispatchMessage('READY');
     }
 
-    onPayment (key:string) {
-        console.log('onPayment', key, this.targets[key]?.length);
+    async onPayment (key:string) {
+        //console.log('onPayment', key, this.targets[key]?.length);
         if (this.targets[key]) {
             for (const target of this.targets[key]) {
                 target.dispatchMessage('PAID');
-                target.close().catch((e) => { console.error('sse close error',e) });
+                try {
+                    await target.close();
+                } catch (error) {
+                    console.error('sse close error', error)
+                }
             }
         }
     }
 
-    close () {
+    async close () {
         //console.log('close sse');
         for (const targets of Object.values(this.targets)) {
             for (const target of targets) {
-                target.close().catch((e) => { console.error('sse close error',e) });
+                try {
+                    await target.close();
+                } catch (error) {
+                    console.error('sse close error', error)
+                }
             }
         }
     }
