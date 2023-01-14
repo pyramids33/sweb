@@ -260,6 +260,8 @@ mainCmd.command('publish')
 });
 
 
+type InvoiceTransferRow = Omit<InvoiceRow, 'txbuf'> & { txbuf: string; }
+
 mainCmd.command('getpayments')
 .description('Download invoices from server')
 .action(async (_options, cmd) => {
@@ -267,6 +269,7 @@ mainCmd.command('getpayments')
     const swebDb = tryOpenDb(sitePath);
     const apiClient = tryGetApiClient(swebDb);
 
+    let lastRefReceived = '';
     let deleteList:string[] = [];
 
     while (true) {
@@ -281,15 +284,18 @@ mainCmd.command('getpayments')
 
         deleteList = [];
         
-        const invoices = responseObj.map((x) => { 
+        const invoices = responseObj.map((x:InvoiceTransferRow) => { 
             return { ...x, txbuf: (x.txbuf ? bsv.deps.Buffer.from(x.txbuf, 'hex') : undefined) } 
         }) as InvoiceRow[];
 
         //console.log(invoices);
-        
-        if (invoices.length === 0) {
+
+        // prevent infinite loop, should not get the same twice
+        if (invoices.length === 0 || invoices[0].ref === lastRefReceived) {
             break;
         }
+
+        lastRefReceived = invoices[0].ref;
 
         const sum = invoices.reduce((p,c) => c.paidAt ? p + c.subtotal : p, 0);
 
