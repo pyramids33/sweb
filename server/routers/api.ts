@@ -24,7 +24,7 @@ async function checkAuthKey (ctx:Context<RequestState>, next:Next) {
     const userAuthKey = ctx.request.headers.get('x-authkey');
 
     if (userAuthKey) {
-        const userAuthKeyHash = sha256hex(userAuthKey);
+        const userAuthKeyHash = sha256hex(new Uint8Array(hexToBuffer(userAuthKey)));
 
         if (userAuthKeyHash === siteAuthKeyHash) {
             await next();

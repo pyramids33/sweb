@@ -174,4 +174,10 @@ Commands:
 deno install --allow-all --unstable -n swebsvr ./server/main.ts  
 deno run --allow-all --unstable ./test/all_tests.ts  
 
+sudo certbot --certonly --nginx -d sweb.lol
+
+sudo ln -s ./services/sweblol.service /lib/systemd/system/sweblol.service
+sudo systemctl start sweblol.service
+
+sudo ln -s ./nginx/sweblol.conf /etc/nginx/sites-enabled/sweb.lol
 
