@@ -42,6 +42,7 @@ class ApiClientBase {
 
         return res;
     }
+
 }
 
 
@@ -142,5 +143,9 @@ export class ApiClient {
 
     status () {
         return this.client.postFormData('/.api/status');
+    }
+
+    dnsAuth () {
+        return this.client.postFormData('/.api/dnsauth');
     }
 }

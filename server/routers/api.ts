@@ -1,6 +1,7 @@
 import * as path from "/deps/std/path/mod.ts";
 import * as mime from "/deps/std/media_types/mod.ts";
-import { bufferToHex } from "/deps/hextools/mod.ts";
+import { concat } from "/deps/std/bytes/concat.ts";
+import { bufferToHex, hexToBuffer } from "/deps/hextools/mod.ts";
 import { Context, Router } from "/deps/oak/mod.ts";
 
 import * as coalesce from "/lib/coalesce.ts";
@@ -9,6 +10,9 @@ import { sha256hex } from "/lib/hash.ts";
 import { RequestState } from "/server/appstate.ts";
 import { FileRow } from "/server/database/filesdb.ts";
 import { Next } from "/server/types.ts";
+import mstime from "../../lib/mstime.ts";
+
+
 
 
 
@@ -39,6 +43,64 @@ async function checkAuthKey (ctx:Context<RequestState>, next:Next) {
 export function getApiRouter () : Router<RequestState> {
 
     const router = new Router<RequestState>();
+
+    // no authKey check
+    router.post('/.api/dnsauth', async function (ctx:Context<RequestState>) {
+        const app = ctx.state.app!;
+        const body = ctx.request.body({ type: 'form-data'});
+        await body.value.read();
+
+        const siteDb = app.openSiteDb();
+        const lastAttempt = siteDb.meta.getValue('$.config.dnsAuthDate') as number;
+        
+        if (lastAttempt > mstime.minsAgo(1)) {
+            ctx.response.status = 403;
+            ctx.response.type = "json";
+            ctx.response.body = { error: 'FORBIDDEN' };
+            return;
+        }
+
+        siteDb.meta.setValue('$.config.dnsAuthDate', Date.now())
+
+        const authKey = coalesce.sha256HashHexString(ctx.request.headers.get('x-authkey'));
+
+        if (authKey === undefined) {
+            ctx.response.status = 403;
+            ctx.response.type = "json";
+            ctx.response.body = { error: 'FORBIDDEN' };
+            return;
+        }
+
+        let valid;
+        
+        if (app.config.env === 'dev') {
+            valid = true;
+        } else {
+            // url object will parse valid domain
+            const v = new URL('http://example.org');
+            v.hostname = app.config.domain;
+            const domain = v.hostname;
+
+            const txtRecords = await Deno.resolveDns(domain, 'TXT');
+            const dnsAuthKey = sha256hex(concat(new TextEncoder().encode('swebdns'), new Uint8Array(hexToBuffer(authKey))));
+            valid = txtRecords.flat().find(x => x === dnsAuthKey) !== undefined;
+        }
+
+        if (!valid) {
+            ctx.response.status = 403;
+            ctx.response.type = "json";
+            ctx.response.body = { error: 'FORBIDDEN' };
+            return;
+        } 
+
+        siteDb.meta.setValue('$.config.authKeyHash', sha256hex(new Uint8Array(hexToBuffer(authKey))));
+
+        ctx.response.status = 200;
+        ctx.response.type = "json";
+        ctx.response.body = {};
+        return;
+    });
+
 
     router.use(checkAuthKey);
 

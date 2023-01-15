@@ -1,13 +1,15 @@
 import * as commander from "npm:commander";
-import * as path from "/deps/std/path/mod.ts";
-
 import bsv from "npm:bsv";
+import * as path from "/deps/std/path/mod.ts";
+import { hexToBuffer } from "/deps/hextools/src/hex_to_buffer.ts";
+import { concat } from "/deps/std/bytes/concat.ts";
 
-import SwebDbModule, { SwebDbApi } from "./swebdb.ts";
-import { InvoiceRow, InvoiceSpec } from "./invoicesdb.ts";
-
+import { sha256hex } from "/lib/hash.ts";
 import { openDb } from "/lib/database/mod.ts";
 import { tryStatSync } from "/lib/trystat.ts";
+
+import SwebDbModule from "./swebdb.ts";
+import { InvoiceRow, InvoiceSpec } from "./invoicesdb.ts";
 import { SiteMap } from "./sitemap.ts"
 import { paywallsCmd } from "./cli_paywallscmd.ts"
 
@@ -32,8 +34,6 @@ import {
 } from "./cli_helpers.ts"
 
 import { buildTransaction } from "./txbuild.ts";
-import { trims } from "../lib/trims.ts";
-
 
 /*
 init
@@ -257,6 +257,51 @@ mainCmd.command('publish')
         }
     }
     swebDb.db.close();
+});
+
+mainCmd.command('dnsCode')
+.description('prints the dns authorization code to be put in your domains dns TXT record')
+.action((_options, cmd) => {
+    const sitePath = cmd.parent.opts().sitePath;
+    const swebDb = tryOpenDb(sitePath);
+    const authKey = swebDb.meta.getValue('$.config.authKey') as string;
+    const dnsAuthKey = sha256hex(concat(new TextEncoder().encode('swebdns'), new Uint8Array(hexToBuffer(authKey))));
+
+    console.log(dnsAuthKey);
+    //const txtRecords = await Deno.resolveDns('sweb.lol', 'TXT');
+    //console.log(txtRecords)
+    //console.log(txtRecords.flat().find(x => x === dnsAuthKey) !== undefined)
+});
+
+mainCmd.command('dnsAuth')
+.description('prints the dns authorization code to be put in your domains dns TXT record')
+.action(async (_options, cmd) => {
+    const sitePath = cmd.parent.opts().sitePath;
+    const swebDb = tryOpenDb(sitePath);
+    const apiClient = tryGetApiClient(swebDb);
+    const response = await apiClient.dnsAuth();
+    const responseObj = await check200JsonResponse(response);
+
+    if (responseObj.error) {
+        console.error(responseObj);
+        Deno.exit(1);
+    }
+});
+
+mainCmd.command('status')
+.description('ping the server to check online and authorized')
+.action(async (_options, cmd) => {
+    const sitePath = cmd.parent.opts().sitePath;
+    const swebDb = tryOpenDb(sitePath);
+    const apiClient = tryGetApiClient(swebDb);
+    const response = await apiClient.status();
+    const responseObj = await check200JsonResponse(response);
+
+    if (responseObj.error) {
+        console.error(responseObj);
+        Deno.exit(1);
+    }
+    console.log('OK');
 });
 
 

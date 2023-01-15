@@ -20,7 +20,7 @@ export function hash<T extends Encoding> (algorithm:string, data:string|ArrayBuf
 }
 
 export function sha256hex (data:string|ArrayBuffer) : string {
-    return hash('sha256',data,'hex');
+    return hash('sha256', data, 'hex');
 }
 
 // import { bufferToHex, hexToBuffer } from "/deps/hextools/mod.ts";
