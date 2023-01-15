@@ -106,6 +106,8 @@ export function getApiRouter () : Router<RequestState> {
 
     router.post('/.api/status', function (ctx:Context) {
         ctx.response.status = 200;
+        ctx.response.type = "json";
+        ctx.response.body = {};
         return; 
     });
     
