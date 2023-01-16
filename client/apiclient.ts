@@ -58,6 +58,10 @@ class FilesApiClient {
         return this.client.postFormData('/.api/files/info', { urlPath });
     }
 
+    download (urlPath:string) {
+        return this.client.postFormData('/.api/files/download', { urlPath });
+    }
+
     async upload (cwdRelativePath:string, urlPath:string, hash?:string, size?:number, mimeType?:string, onProgressFn = () => {}) {
 
         const blob = await Deno.readFile(cwdRelativePath);
@@ -78,9 +82,9 @@ class FilesApiClient {
 
         return await this.client.postFormData('/.api/files/upload', { 
             urlPath,
-            hash: hash!,  
-            size: size!.toString(), 
-            mimeType: mimeType!, 
+            hash: hash,  
+            size: size.toString(), 
+            mimeType: mimeType, 
             filedata 
         }, { onProgressFn });
     }

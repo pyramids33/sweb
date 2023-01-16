@@ -12,11 +12,6 @@ import { FileRow } from "/server/database/filesdb.ts";
 import { Next } from "/server/types.ts";
 import mstime from "../../lib/mstime.ts";
 
-
-
-
-
-
 async function checkAuthKey (ctx:Context<RequestState>, next:Next) {
     const app = ctx.state.app!;
     const siteDb = app.openSiteDb();
@@ -37,8 +32,6 @@ async function checkAuthKey (ctx:Context<RequestState>, next:Next) {
     ctx.response.body = { error: 'FORBIDDEN' };
     return;
 }
-
-
 
 export function getApiRouter () : Router<RequestState> {
 
@@ -101,7 +94,6 @@ export function getApiRouter () : Router<RequestState> {
         return;
     });
 
-
     router.use(checkAuthKey);
 
     router.post('/.api/status', function (ctx:Context) {
@@ -137,6 +129,8 @@ export function getApiRouter () : Router<RequestState> {
 
         if (fileRow === undefined) {
             ctx.response.status = 404;
+            ctx.response.type = "json";
+            ctx.response.body = {};
             return;
         }
 
@@ -289,6 +283,8 @@ export function getApiRouter () : Router<RequestState> {
 
     router.all('/.api/(.*)', function (ctx:Context<RequestState>) {
         ctx.response.status = 404;
+        ctx.response.type = "json";
+        ctx.response.body = {};
     })
 
     return router;

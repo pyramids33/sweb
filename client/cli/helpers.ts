@@ -3,13 +3,11 @@ import * as path from "/deps/std/path/mod.ts";
 import { bufferToHex } from "/deps/hextools/src/buffer_to_hex.ts";
 import bsv from "npm:bsv";
 
-import SwebDbModule, { SwebDbApi } from "./swebdb.ts";
-import { ApiClient } from "./apiclient.ts";
-import { ChangeDetector } from "./changedetector.ts";
-import { SiteMap } from "./sitemap.ts";
+import SwebDbModule, { SwebDbApi } from "/client/database/swebdb.ts";
+import { ApiClient } from "/client/apiclient.ts";
 
 import { openDb } from "/lib/database/mod.ts";
-import { PaywallFile } from "../lib/paywallfile.ts";
+import { PaywallFile } from "/lib/paywallfile.ts";
 
 export interface ServerFileRow {
     urlPath:string
@@ -116,11 +114,6 @@ export function getPaywallFile (sitePath:string) {
 export async function check200JsonResponse (response:Response) {
     // check response is status 200 with valid JSON, return
     // return response data as object
-    if (!response.ok) {
-        console.error('Error: ' + response.status.toString() + ' ' + response.statusText);
-        Deno.exit(1);
-    }
-
     let responseObj; 
 
     try {
@@ -130,41 +123,12 @@ export async function check200JsonResponse (response:Response) {
         Deno.exit(1);
     }
 
-    return responseObj;
-}
-
-export async function reIndexSiteMap (siteMap:SiteMap, swebDb:SwebDbApi) {
-
-    const changeDetector = new ChangeDetector(siteMap, swebDb);
-    const results = await changeDetector.detectChanges();
-    
-    swebDb.db.transaction(function () {
-        try {
-            for (const file of results.upserts) {
-                swebDb.files.local.upsertFile(file);
-            }
-            for (const urlPath of results.deletions) {
-                swebDb.files.local.deleteFile(urlPath);
-            }
-        } catch (error) {
-            if (!swebDb.db.inTransaction) {
-                throw error; 
-            }
-        }
-    })(null);
-
-    return results;
-}
-
-export function processTx (swebDb:SwebDbApi, tx:bsv.Tx) {
-    for (const [ nIn, txIn ] of tx.txIns.entries()) {
-        swebDb.outputs.markSpent(
-            txIn.txHashBuf.toString('hex'), 
-            txIn.txOutNum, 
-            tx.hash().toString('hex'),
-            nIn
-        );
+    if (!response.ok) {
+        console.error('Error: ' + response.status.toString() + ' ' + response.statusText, responseObj);
+        Deno.exit(1);
     }
+    
+    return responseObj;
 }
 
 // function prettyFiles (obj) {
@@ -191,4 +155,5 @@ export const configOptions = {
         `type 'r' to generate at random. `).argParser(validateAuthKey),  
 };
 
-
+export const sitePathOption = new commander.Option('-s --sitePath <sitePath>', 'path to local site root')
+.default('.', 'current working dir')

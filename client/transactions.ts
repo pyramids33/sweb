@@ -1,6 +1,6 @@
 import bsv from "npm:bsv";
 
-import { SwebDbApi } from "./swebdb.ts";
+import { SwebDbApi } from "/client/database/swebdb.ts";
 
 export function buildTransaction (swebDb:SwebDbApi, addressTo:bsv.Address) : bsv.Tx {
 
@@ -57,4 +57,13 @@ export function buildTransaction (swebDb:SwebDbApi, addressTo:bsv.Address) : bsv
     return tx;
 }
 
-
+export function processTransaction (swebDb:SwebDbApi, tx:bsv.Tx) {
+    for (const [ nIn, txIn ] of tx.txIns.entries()) {
+        swebDb.outputs.markSpent(
+            txIn.txHashBuf.toString('hex'), 
+            txIn.txOutNum, 
+            tx.hash().toString('hex'),
+            nIn
+        );
+    }
+}

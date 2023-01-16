@@ -1,2 +1,2 @@
-import { mainCmd } from "/client/cli.ts";
-mainCmd.parseAsync().catch(console.error);
+import { cmd } from "/client/cli/cmd.ts";
+cmd.parseAsync().catch(console.error);

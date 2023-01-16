@@ -1,12 +1,12 @@
 import * as path from "/deps/std/path/mod.ts";
 
 import { tryStat } from "/lib/trystat.ts";
-
-import { SwebDbApi } from "./swebdb.ts";
-import { FileRow } from "./filesdb.ts";
 import { AsyncQueue } from "/lib/asyncqueue.ts";
 import { hashFile } from "/lib/hash.ts";
-import { SiteMap, SiteMapEntry, urlPathToDbRelativeFilePath } from "./sitemap.ts";
+
+import { SwebDbApi } from "/client/database/swebdb.ts";
+import { FileRow } from "/client/database/filesdb.ts";
+import { SiteMap, SiteMapEntry, urlPathToDbRelativeFilePath } from "/client/sitemap.ts";
 
 
 const NoOp = () => {};
