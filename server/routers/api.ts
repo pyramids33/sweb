@@ -148,7 +148,7 @@ export function getApiRouter () : Router<RequestState> {
         const app = ctx.state.app!;
         const sitePath = app.sitePath;
         const body = ctx.request.body({ type: 'form-data'});
-        const form = await body.value.read({ outPath: sitePath.filesPath });
+        const form = await body.value.read({ outPath: sitePath.filesPath, maxFileSize: app.config.maxUploadSize || 50000000 });
     
         const reqFile = form.files?.[0];
 

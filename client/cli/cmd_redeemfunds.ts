@@ -18,7 +18,7 @@ export const redeemFundsCmd = new commander.Command('redeem-funds')
 .action(async (options) => {
     const sitePath = options.sitePath;
     const swebDb = tryOpenDb(sitePath);
-    const tx = buildTransaction(swebDb, bsv.Address.fromString(options.address));
+    const tx = buildTransaction(swebDb, options.address);
     
     console.log(tx.toString());
     

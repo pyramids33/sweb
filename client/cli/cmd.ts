@@ -71,7 +71,6 @@ cmd.addCommand(addPaywallCmd);
 cmd.addCommand(removePaywallCmd);
 
 cmd.addCommand(reindexFilesCmd);
-cmd.addCommand(showDiffCmd);
 
 cmd.addCommand(activateAuthKeyCmd);
 cmd.addCommand(downloadFileCmd);
@@ -85,6 +84,7 @@ cmd.addCommand(processTxCmd);
 cmd.addCommand(redeemFundsCmd);
 
 cmd.addCommand(showConfigCmd);
+cmd.addCommand(showDiffCmd);
 cmd.addCommand(showDnsCodeCmd);
 cmd.addCommand(showFilesCmd);
 cmd.addCommand(showOutputsCmd);

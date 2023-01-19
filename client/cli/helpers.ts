@@ -63,6 +63,13 @@ export function validateFormat (value:string) {
     throw new commander.InvalidOptionArgumentError('valid option is text, json')
 }
 
+export function validateAddress (value:string) {
+    try {
+        return bsv.Address.fromString(value)
+    } catch {
+        throw new commander.InvalidOptionArgumentError('invalid address');
+    }
+}
 
 export function tryOpenDb (sitePath:string) {
     const dbPath = path.join(sitePath, 'sweb.db');

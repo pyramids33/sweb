@@ -137,35 +137,40 @@ Use sweb client to:
 - Publish to your sweb server
 - Download and redeem payments
 
-deno install --allow-all --unstable -n sweb ./client/main.ts
-
 ```
+# Link command
+# deno install --allow-all --unstable -n sweb ./client/main.ts
+
 Usage: sweb [options] [command]
 
 Options:
-  -s --sitePath <sitePath>  path to local site root (default: ".")
-  -h, --help                display help for command
+  -h, --help                                                        display help for command
 
 Commands:
-  init [options]            Create a new site database.
-  sitemap [options]         show site map by walking sitePath
-  reindex [options]         Reindex file information
-  diff                      Compare local files to server files. (performs local reindex)
-  publish                   Sync files to server. (Local reindex, diff, then upload/delete/rename)
-  getpayments               Download invoices from server
-  redeem [options]          create tx spending to address (tx hex is printed to stdout)
-  processtx [options]       process a tx, marking outputs as spent. (the tx should have already been broadcast)
-  show-outputs              show txoutputs
-  show-invoices             show invoices
-  config [options]          Set configuration options
-  hdkey [options]           Generate a new hd key (bip32)
-  paywalls                  Configure the site paywalls
-  upload                    upload a file
-  download                  download a file
-  delete                    delete file from server
-  getinfo                   get info about a file
-  rename                    rename file on server
-  help [command]            display help for command
+  init [options]                                                    Create a new site database.
+  set-config [options]                                              Set configuration options
+  set-hdkey [options]                                               Generate a new hd key (bip32)
+  add-paywall [options] <pattern> <amount> [description] [address]  add paywall
+  remove-paywall [options] <pattern> <outputNum>                    remove paywall or paywall output
+  reindex-files [options]                                           Reindex file information
+  activate-authkey [options]                                        activate authKey on the server using the DNS txt record
+  download-file [options] <urlPath>                                 download a file and pipe to stdout
+  get-api-status [options]                                          ping the server to check online and authorized
+  get-payments [options]                                            Download invoices from server
+  get-fileinfo [options] <urlPath>                                  get info about a file
+  publish [options]                                                 Sync files to server. (Local reindex, diff, then upload/delete/rename)
+  upload-file <relativePath>                                        upload a file
+  process-tx [options]                                              process a tx, marking outputs as spent. (the tx should have already been broadcast)
+  redeem-funds [options]                                            create tx spending to address (tx hex is printed to stdout)
+  show-config [options]                                             show config from db
+  show-diff [options]                                               Compare local files to server files. (performs local reindex)
+  show-dnscode [options]                                            prints the dns authorization code to be put in your domains dns TXT record
+  show-files [options]                                              show site map by walking sitePath
+  show-outputs [options]                                            show txoutputs
+  show-payments [options]                                           show payments
+  show-paywalls [options]                                           show the paywalls from paywall.json
+  help [command]                                                    display help for command
+
 
 ```
 

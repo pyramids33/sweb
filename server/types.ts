@@ -19,6 +19,7 @@ export interface Config {
     domain: string 
     ensureDirs?: boolean
     initAuthKey?: string
+    maxUploadSize?: number
     mAPIEndpoints: MapiEndPointInfo[]
 }
 
