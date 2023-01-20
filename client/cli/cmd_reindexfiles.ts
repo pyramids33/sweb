@@ -15,7 +15,8 @@ import { reindexFiles } from "../reindex.ts";
 
 export const reindexFilesCmd = new commander.Command('reindex-files')
 .addOption(sitePathOption)
-.option('-l --local', 'reindex the local files')
+.option('-l --local', 'updates the db index with changes to the local files')
+.option('-f --full', 'full reindex of the local files')
 .option('-s --server', 'get current file list from server')
 .description('Reindex file information')
 .action(async (options) => {
@@ -24,13 +25,21 @@ export const reindexFilesCmd = new commander.Command('reindex-files')
     const swebDb = tryOpenDb(sitePath)
 
     if (options.local) {
+
+        if (options.full) {
+            swebDb.files.local.deleteAll();
+        }
+
         const changes = await reindexFiles(siteMap, swebDb);
+        
         for (const item of changes.upserts) {
             console.log('new/updated', item.urlPath);
         }
+
         for (const item of changes.deletions) {
             console.log('deleted', item);
         }
+
         for (const item of changes.missing) {
             console.log('missing', item.urlPath);
         }
@@ -38,7 +47,7 @@ export const reindexFilesCmd = new commander.Command('reindex-files')
 
     if (options.server) {
         const apiClient = tryGetApiClient(swebDb);
-        const response = await apiClient.files.list()
+        const response = await apiClient.searchFiles()
         const responseObj = await check200JsonResponse(response);
         
         if (responseObj.error) {

@@ -14,7 +14,7 @@ export const activateAuthKeyCmd = new commander.Command('activate-authkey')
     const sitePath = options.sitePath;
     const swebDb = tryOpenDb(sitePath);
     const apiClient = tryGetApiClient(swebDb);
-    const response = await apiClient.dnsAuth();
+    const response = await apiClient.activateAuthKey()
     const responseObj = await check200JsonResponse(response);
 
     if (responseObj.error) {

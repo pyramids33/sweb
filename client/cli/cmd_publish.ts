@@ -31,7 +31,7 @@ export const publishCmd = new commander.Command('publish')
     {
         console.log('deletions... ' + deletions.length.toString());
         const deleteList = deletions.map(x => x.urlPath);
-        const response = await apiClient.files.delete(deleteList.join('\n'));
+        const response = await apiClient.deleteFiles(deleteList.join('\n'));
         const responseObj = await check200JsonResponse(response);
 
         if (responseObj.error) {
@@ -45,7 +45,7 @@ export const publishCmd = new commander.Command('publish')
     {
         console.log('renames... ' + renames.length.toString());
         const renameList = renames.map(x => [ x.server.urlPath, x.local.urlPath ] as [string,string]);
-        const response = await apiClient.files.rename(renameList.map(x => x.join('\n')).join('\n'));
+        const response = await apiClient.renameFiles(renameList.map(x => x.join('\n')).join('\n'));
         const responseObj = await check200JsonResponse(response);
 
         if (responseObj.error) {
@@ -61,7 +61,8 @@ export const publishCmd = new commander.Command('publish')
         for (const item of uploads) {
             const { urlPath, hash, size, storagePath, mimeType } = item;
             const cwdRelativePath = path.join(sitePath, storagePath);
-            const response = await apiClient.files.upload(cwdRelativePath, urlPath, hash, size, mimeType);
+            console.log('uploading... ' + urlPath)
+            const response = await apiClient.uploadFile(cwdRelativePath, urlPath, hash, size, mimeType);
             const responseObj = await check200JsonResponse(response);
 
             if (responseObj.error) {

@@ -46,23 +46,49 @@ class ApiClientBase {
 }
 
 
-class FilesApiClient {
-    
+
+
+export class ApiClient {
+
     client:ApiClientBase
-
-    constructor (client:ApiClientBase) {
-        this.client = client;
+  
+    constructor (urlPrefix:string, authKey:string, abortSignal?:AbortSignal) {
+        this.client = new ApiClientBase(urlPrefix, authKey, abortSignal);
     }
 
-    info (urlPath:string) {
-        return this.client.postFormData('/.api/files/info', { urlPath });
+    activateAuthKey () {
+        return this.client.postFormData('/.api/activate-authkey');
+    }  
+
+    deleteFiles (deleteList:string) {
+        return this.client.postFormData('/.api/delete-files', { delete: deleteList });
     }
 
-    download (urlPath:string) {
-        return this.client.postFormData('/.api/files/download', { urlPath });
+    downloadFile (urlPath:string) {
+        return this.client.postFormData('/.api/download-file', { urlPath });
     }
 
-    async upload (cwdRelativePath:string, urlPath:string, hash?:string, size?:number, mimeType?:string, onProgressFn = () => {}) {
+    getFileInfo (urlPath:string) {
+        return this.client.postFormData('/.api/get-fileinfo', { urlPath });
+    }
+
+    searchFiles (search?:string, offset?:number) {
+        return this.client.postFormData('/.api/search-files', { search, offset: offset?.toString() });
+    }
+
+    getPayments (deleteList:string, doSend=true) {
+        return this.client.postFormData('/.api/get-payments', { delete: deleteList, doSend: doSend ? '1' : '0' });
+    }  
+
+    getStatus () {
+        return this.client.postFormData('/.api/get-status');
+    }
+
+    renameFiles (renameList:string) {
+        return this.client.postFormData('/.api/rename-files', { rename: renameList });
+    }
+
+    async uploadFile (cwdRelativePath:string, urlPath:string, hash?:string, size?:number, mimeType?:string, onProgressFn = () => {}) {
 
         const blob = await Deno.readFile(cwdRelativePath);
         
@@ -80,7 +106,7 @@ class FilesApiClient {
 
         const filedata = new File([blob], path.basename(urlPath));
 
-        return await this.client.postFormData('/.api/files/upload', { 
+        return await this.client.postFormData('/.api/upload-file', { 
             urlPath,
             hash: hash,  
             size: size.toString(), 
@@ -89,67 +115,4 @@ class FilesApiClient {
         }, { onProgressFn });
     }
 
-    rename (renameList:string) {
-        return this.client.postFormData('/.api/files/rename', { rename: renameList });
-    }
-
-    delete (deleteList:string) {
-        return this.client.postFormData('/.api/files/delete', { delete: deleteList });
-    }
-
-    list (search?:string, offset?:number) {
-        return this.client.postFormData('/.api/files/list', { search, offset: offset?.toString() });
-    }
-}
-
-class PaywallsApiClient {
-    
-    client:ApiClientBase
-
-    constructor (client:ApiClientBase) {
-        this.client = client;
-    }
-
-    set (paywallsJSON:string) {
-        return this.client.postFormData('/.api/paywalls/set', { paywalls: paywallsJSON });
-    }
-
-    get () {
-        return this.client.postFormData('/.api/paywalls/get');
-    }
-}
-
-class InvoicesApiClient {
-    client:ApiClientBase
-
-    constructor (client:ApiClientBase) {
-        this.client = client;
-    }
-
-    transfer (deleteList:string, doSend=true) {
-        return this.client.postFormData('/.api/invoices/transfer', { delete: deleteList, doSend: doSend ? '1' : '0' });
-    }
-}
-
-export class ApiClient {
-
-    paywalls:PaywallsApiClient
-    invoices:InvoicesApiClient
-    files:FilesApiClient
-    client:ApiClientBase
-  
-    constructor (urlPrefix:string, authKey:string, abortSignal?:AbortSignal) {
-        this.client = new ApiClientBase(urlPrefix, authKey, abortSignal);
-        this.files = new FilesApiClient(this.client);
-        this.invoices = new InvoicesApiClient(this.client);
-        this.paywalls = new PaywallsApiClient(this.client);
-    }
-
-    status () {
-        return this.client.postFormData('/.api/status');
-    }
-
-    dnsAuth () {
-        return this.client.postFormData('/.api/dnsauth');
-    }
 }

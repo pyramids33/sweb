@@ -17,7 +17,7 @@ export const downloadFileCmd = new commander.Command('download-file')
     const apiClient = tryGetApiClient(swebDb);
     swebDb.db.close();
 
-    const response = await apiClient.files.download(urlPath);
+    const response = await apiClient.downloadFile(urlPath);
 
     if (!(response.ok && response.body)){
         await check200JsonResponse(response);

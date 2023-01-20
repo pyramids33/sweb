@@ -15,7 +15,7 @@ export const getApiStatusCmd = new commander.Command('get-api-status')
     const sitePath = options.sitePath;
     const swebDb = tryOpenDb(sitePath);
     const apiClient = tryGetApiClient(swebDb);
-    const response = await apiClient.status();
+    const response = await apiClient.getStatus();
     const responseObj = await check200JsonResponse(response);
 
     if (responseObj.error) {

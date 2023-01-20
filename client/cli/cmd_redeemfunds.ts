@@ -1,5 +1,4 @@
 import * as commander from "npm:commander";
-import bsv from "npm:bsv";
 
 import { 
     sitePathOption,

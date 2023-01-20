@@ -14,6 +14,7 @@ import { reindexFilesCmd } from "/client/cli/cmd_reindexfiles.ts";
 import { removePaywallCmd } from "/client/cli/cmd_removepaywall.ts";
 import { setConfigCmd } from "/client/cli/cmd_setconfig.ts";
 import { setHdKeyCmd } from "/client/cli/cmd_sethdkey.ts";
+import { showBalanceCmd } from "/client/cli/cmd_showbalance.ts";
 import { showConfigCmd } from "/client/cli/cmd_showconfig.ts";
 import { showDiffCmd } from "/client/cli/cmd_showdiff.ts";
 import { showDnsCodeCmd } from "/client/cli/cmd_showdnscode.ts";
@@ -46,12 +47,10 @@ publish
 rename-url
 upload-file
 
-
 process-tx
 redeem-funds
 
 show-balance
-show-changes
 show-config
 show-dnscode
 show-files --db --fs
@@ -83,6 +82,7 @@ cmd.addCommand(uploadFileCmd);
 cmd.addCommand(processTxCmd);
 cmd.addCommand(redeemFundsCmd);
 
+cmd.addCommand(showBalanceCmd);
 cmd.addCommand(showConfigCmd);
 cmd.addCommand(showDiffCmd);
 cmd.addCommand(showDnsCodeCmd);

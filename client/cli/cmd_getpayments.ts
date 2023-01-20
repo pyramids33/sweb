@@ -25,7 +25,7 @@ export const getPaymentsCmd = new commander.Command('get-payments')
 
     while (true) {
         
-        const response = await apiClient.invoices.transfer(deleteList.join('\n'), true);
+        const response = await apiClient.getPayments(deleteList.join('\n'), true);
         const responseObj = await check200JsonResponse(response);
 
         if (responseObj.error) {

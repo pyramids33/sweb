@@ -43,7 +43,7 @@ export const uploadFileCmd = new commander.Command('upload-file')
     const hash = await hashFile('sha256', filePath, 'hex')
     const mimeType = mime.contentType(path.extname(fileInfo.urlPath)) || 'application/octet-stream';
     
-    const response = await apiClient.files.upload(filePath, fileInfo.urlPath, hash, size, mimeType);
+    const response = await apiClient.uploadFile(filePath, fileInfo.urlPath, hash, size, mimeType);
     const responseObj = await check200JsonResponse(response);
 
     if (responseObj.error) {

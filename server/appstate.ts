@@ -181,7 +181,11 @@ export class AppState {
     }
 
     async runPaywallFileReloader (delayMs:number) {
-        await this.getPaywallFile(true);
+        try {
+            await this.getPaywallFile(true);
+        } catch (error) {
+            console.error(error);
+        }
         Deno.unrefTimer(setTimeout(() => this.runPaywallFileReloader(delayMs).catch(console.error), delayMs));
     }
 

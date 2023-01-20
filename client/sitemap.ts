@@ -25,19 +25,30 @@ export function urlPathToDbRelativeFilePath (urlPath:string) {
     return path.fromFileUrl(new URL('file://'+urlPath))
 }
 
+/**
+ * Any file or directory starting with dot, underscore or 'sweb' is ignored by site mapper
+ * Dot on its own is site root so not ignored
+ */
+const ignorePathRegExpString = path.sep === '\\' ? 
+    /(^|\\)((\.[^\\]+)|(_[^\\]*)|(sweb[^\\]*))($|\\)/ : 
+    /(^|\/)((\.[^\/]+)|(_[^\/]*)|(sweb[^\/]*))($|\/)/;
+const ignorePathRegExp = new RegExp(ignorePathRegExpString, 'gi');
+
 export class SiteMap {
 
     sitePath:string
-    ignoreList:string[]
 
-    constructor (sitePath:string, ignoreList:string[]=[]) {
+    constructor (sitePath:string) {
         this.sitePath = sitePath;
-        this.ignoreList = ['sweb.db','sweb.db-shm','sweb.db-wal','sweb.json', ...ignoreList];
     }
 
     async* walk (dbRelativePath='', walkOptions?:WalkOptions) {
         const walkPath = path.join(this.sitePath, dbRelativePath);
 
+        walkOptions = walkOptions || {};
+        walkOptions.skip = walkOptions.skip || [];
+        walkOptions.skip.push(ignorePathRegExp);
+        
         for await (const entry of walk(walkPath, walkOptions)) {
             const dbRelativePath = path.relative(this.sitePath, entry.path);
             const info = await this.fileInfo(dbRelativePath);
@@ -61,8 +72,8 @@ export class SiteMap {
         const urlPath = path.toFileUrl('/'+dbRelativePath).pathname;
         const basename = path.basename(dbRelativePath);
 
-        if (this.ignoreList.includes(dbRelativePath) || basename === 'sweb.json') {
-            return undefined;
+        if (ignorePathRegExp.test(dbRelativePath)) {
+           return undefined;
         }
 
         const entryPath = path.join(this.sitePath, dbRelativePath); // current working dir relative
@@ -101,10 +112,6 @@ export class SiteMap {
                     mimeType
                 }
             }
-
-            // default files
-            // lookup default.*
-            // if more than one, ignore and use sweb.json
 
             const defaultHtmlStat = await tryStat(path.join(entryPath, 'default.html'));
 

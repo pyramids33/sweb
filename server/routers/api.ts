@@ -38,7 +38,7 @@ export function getApiRouter () : Router<RequestState> {
     const router = new Router<RequestState>();
 
     // no authKey check
-    router.post('/.api/dnsauth', async function (ctx:Context<RequestState>) {
+    router.post('/.api/activate-authkey', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const body = ctx.request.body({ type: 'form-data'});
         await body.value.read();
@@ -96,14 +96,14 @@ export function getApiRouter () : Router<RequestState> {
 
     router.use(checkAuthKey);
 
-    router.post('/.api/status', function (ctx:Context) {
+    router.post('/.api/get-status', function (ctx:Context) {
         ctx.response.status = 200;
         ctx.response.type = "json";
         ctx.response.body = {};
         return; 
     });
     
-    router.post('/.api/files/info', async function (ctx:Context<RequestState>) {
+    router.post('/.api/get-fileinfo', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const body = ctx.request.body({ type: 'form-data'});
         const form = await body.value.read();
@@ -120,7 +120,7 @@ export function getApiRouter () : Router<RequestState> {
         ctx.response.body = info;
     });
 
-    router.post('/.api/files/download', async function (ctx:Context<RequestState>) {
+    router.post('/.api/download-file', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const body = ctx.request.body({ type: 'form-data'});
         const form = await body.value.read();
@@ -144,7 +144,7 @@ export function getApiRouter () : Router<RequestState> {
         } 
     });
 
-    router.post('/.api/files/upload', async function (ctx:Context<RequestState>) {
+    router.post('/.api/upload-file', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const sitePath = app.sitePath;
         const body = ctx.request.body({ type: 'form-data'});
@@ -189,7 +189,7 @@ export function getApiRouter () : Router<RequestState> {
         ctx.response.body = {};
     });
 
-    router.post('/.api/files/delete', async function (ctx:Context<RequestState>) {
+    router.post('/.api/delete-files', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const body = ctx.request.body({ type: "form-data"});
         const form = await body.value.read();
@@ -217,7 +217,7 @@ export function getApiRouter () : Router<RequestState> {
         ctx.response.body = {};
     });
 
-    router.post('/.api/files/rename', async function (ctx:Context<RequestState>) {
+    router.post('/.api/rename-files', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const body = ctx.request.body({ type: "form-data"});
         const form = await body.value.read();
@@ -236,7 +236,7 @@ export function getApiRouter () : Router<RequestState> {
         ctx.response.body = {};
     });
 
-    router.post('/.api/files/list', async function (ctx:Context<RequestState>) {
+    router.post('/.api/search-files', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const body = ctx.request.body({ type: "form-data"});
         const form = await body.value.read();
@@ -253,7 +253,7 @@ export function getApiRouter () : Router<RequestState> {
         });
     });
 
-    router.post('/.api/invoices/transfer', async function (ctx:Context<RequestState>) {
+    router.post('/.api/get-payments', async function (ctx:Context<RequestState>) {
         const app = ctx.state.app!;
         const body = ctx.request.body({ type: 'form-data'});
         const form = await body.value.read();

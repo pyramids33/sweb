@@ -57,7 +57,7 @@ export function getContentRouter () : Router<RequestState> {
             if (!hasAccess) {
                 ctx.response.status = 402;
                 ctx.response.headers.set('content-disposition', 'inline; filename=402.html');
-                await ctx.send({ root: config.staticPath, path: '402.html' });
+                await ctx.send({ root: config.staticPath!, path: '402.html' });
                 return;
             }
         }

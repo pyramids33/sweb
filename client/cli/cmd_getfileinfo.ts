@@ -19,7 +19,7 @@ export const getFileInfoCmd = new commander.Command('get-fileinfo')
     const apiClient = tryGetApiClient(swebDb);
     swebDb.db.close();
 
-    const response = await apiClient.files.info(urlPath)
+    const response = await apiClient.getFileInfo(urlPath)
     const responseObj = await check200JsonResponse(response);
 
     if (responseObj.error) {
