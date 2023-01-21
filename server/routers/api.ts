@@ -1,16 +1,17 @@
 import * as path from "/deps/std/path/mod.ts";
 import * as mime from "/deps/std/media_types/mod.ts";
 import { concat } from "/deps/std/bytes/concat.ts";
-import { bufferToHex, hexToBuffer } from "/deps/hextools/mod.ts";
+import { Buffer } from "/deps/std/node/buffer.ts";
 import { Context, Router } from "/deps/oak/mod.ts";
 
 import * as coalesce from "/lib/coalesce.ts";
 import { sha256hex } from "/lib/hash.ts";
+import mstime from "/lib/mstime.ts";
 
 import { RequestState } from "/server/appstate.ts";
 import { FileRow } from "/server/database/filesdb.ts";
 import { Next } from "/server/types.ts";
-import mstime from "../../lib/mstime.ts";
+
 
 async function checkAuthKey (ctx:Context<RequestState>, next:Next) {
     const app = ctx.state.app!;
@@ -19,7 +20,7 @@ async function checkAuthKey (ctx:Context<RequestState>, next:Next) {
     const userAuthKey = ctx.request.headers.get('x-authkey');
 
     if (userAuthKey) {
-        const userAuthKeyHash = sha256hex(new Uint8Array(hexToBuffer(userAuthKey)));
+        const userAuthKeyHash = sha256hex(Buffer.from(userAuthKey,'hex'));
 
         if (userAuthKeyHash === siteAuthKeyHash) {
             await next();
@@ -75,7 +76,7 @@ export function getApiRouter () : Router<RequestState> {
             const domain = v.hostname;
 
             const txtRecords = await Deno.resolveDns(domain, 'TXT');
-            const dnsAuthKey = sha256hex(concat(new TextEncoder().encode('swebdns'), new Uint8Array(hexToBuffer(authKey))));
+            const dnsAuthKey = sha256hex(concat(new TextEncoder().encode('swebdns'), Buffer.from(authKey,'hex')));
             valid = txtRecords.flat().find(x => x === dnsAuthKey) !== undefined;
         }
 
@@ -86,7 +87,7 @@ export function getApiRouter () : Router<RequestState> {
             return;
         } 
 
-        siteDb.meta.setValue('$.config.authKeyHash', sha256hex(new Uint8Array(hexToBuffer(authKey))));
+        siteDb.meta.setValue('$.config.authKeyHash', sha256hex(Buffer.from(authKey,'hex')));
 
         ctx.response.status = 200;
         ctx.response.type = "json";
@@ -184,6 +185,10 @@ export function getApiRouter () : Router<RequestState> {
             Deno.remove(sitePath.filePath(currentFile.storagePath)).catch(() => {});
         }
 
+        // if (urlPath === '/paywalls.json') {
+        //     await ctx.state.app?.getPaywallFile(true);
+        // }
+
         ctx.response.status = 200;
         ctx.response.type = "json";
         ctx.response.body = {};
@@ -274,7 +279,7 @@ export function getApiRouter () : Router<RequestState> {
         if (form.fields.doSend === '1') {
             /* the next 1000 are sent */
             ctx.response.body = siteDb.invoices.getNext1000Invoices(lastRef).map(x => { 
-                return { ...x, txbuf: (x.txbuf ? bufferToHex(x.txbuf) : undefined) }
+                return { ...x, txbuf: (x.txbuf ? Buffer.from(x.txbuf).toString('hex') : undefined) }
             });
         } else {
             ctx.response.body = [];

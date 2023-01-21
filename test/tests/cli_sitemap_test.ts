@@ -25,7 +25,7 @@ await cmd.run(
     '--xprv', xPrv
 );
 
-const result = await cmd.run(execPath, 'sitemap', '--format','json', '--sitePath', sitePath);
+const result = await cmd.run(execPath, 'show-files', '--db', '--format', 'json', '--sitePath', sitePath);
 
 const expected = [
     {

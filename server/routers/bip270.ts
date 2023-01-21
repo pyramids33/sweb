@@ -1,7 +1,7 @@
 import { default as id128 } from "npm:id128";
 import bsv from "npm:bsv";
 import { Context, Router } from "/deps/oak/mod.ts";
-import { hexToBuffer } from "/deps/hextools/mod.ts";
+import { Buffer } from "/deps/std/node/buffer.ts";
 
 import mstime from "/lib/mstime.ts";
 
@@ -238,7 +238,7 @@ export function getBip270Router () : Router<RequestState> {
             return;
         }
 
-        const txbuf = new Uint8Array(hexToBuffer(body.transaction));
+        const txbuf = Buffer.from(body.transaction,'hex');
         const tx:bsv.Tx = bsv.Tx.fromHex(body.transaction);
 
         const invSpecItems:InvoiceSpecItem[] = JSON.parse(invoice.spec).outputs;

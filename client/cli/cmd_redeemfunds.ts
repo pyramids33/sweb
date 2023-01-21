@@ -3,6 +3,7 @@ import * as commander from "npm:commander";
 import { 
     sitePathOption,
     tryOpenDb,
+    validateAddress
 } from "./helpers.ts"
 
 import { buildTransaction, processTransaction } from "../transactions.ts";
@@ -10,7 +11,7 @@ import { buildTransaction, processTransaction } from "../transactions.ts";
 export const redeemFundsCmd = new commander.Command('redeem-funds')
 .description('create tx spending to address (tx hex is printed to stdout)')
 .addOption(sitePathOption)
-.requiredOption('-a --address <address>', 'destination address to redeem (if unspecified in paywall.json)')
+.requiredOption('-a --address <address>', 'destination address to redeem (if unspecified in paywall.json)', validateAddress)
 .option('-b --broadcast', 'broadcast the transaction (txid printed to stdout)', false)
 .option('-p --process', 'process thes transaction (if broadcast succeeds)', false)
 .option('-o --outputPath', 'path to save tx as a binary file')

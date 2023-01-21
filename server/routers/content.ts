@@ -47,6 +47,7 @@ export function getContentRouter () : Router<RequestState> {
             }
         }
 
+
         const paywallFile = await app.getPaywallFile();
         const matchResult = paywallFile.matchUrl(ctx.request.url.pathname);
 

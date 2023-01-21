@@ -1,6 +1,7 @@
 import { emptyDirSync } from '/deps/std/fs/mod.ts';
 import { assertEquals } from "/deps/std/testing/asserts.ts";
 import * as path from "/deps/std/path/mod.ts";
+import { Buffer } from '/deps/std/node/buffer.ts';
 
 import { sha256hex } from "/lib/hash.ts";
 import { serveSite } from "/server/servesite.ts";
@@ -28,7 +29,7 @@ try {
 } catch { /** */ }
 
 const siteDb = appState.openSiteDb();
-siteDb.meta.setValue('$.config.authKeyHash', sha256hex(authKey));
+siteDb.meta.setValue('$.config.authKeyHash', sha256hex(Buffer.from(authKey, 'hex')));
 
 const serverClosed = serveSite(appState, { abortSignal: abortController.signal });
 const cookyFetch = CookyFetch();
@@ -43,11 +44,11 @@ try {
         assertEquals(body, 'OK');
     }
     {   
-        const res = await apiClient.status();
+        const res = await apiClient.getStatus();
         assertEquals(res.status, 200);
 
         const body = await res.text();
-        assertEquals(body, '');
+        assertEquals(body, '{}');
     }
 
     const elephantJpgUrlPath = '/elephant.jpg';
@@ -55,7 +56,7 @@ try {
     {
         const cwdRelativePath = path.join(__dirname, '../data/example', elephantJpgUrlPath);
         
-        const res = await apiClient.files.upload(cwdRelativePath, elephantJpgUrlPath)
+        const res = await apiClient.uploadFile(cwdRelativePath, elephantJpgUrlPath)
         assertEquals(res.status, 200);
 
         const body = await res.text();

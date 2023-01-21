@@ -5,7 +5,7 @@ import * as path from '/deps/std/path/mod.ts';
 import { CommandRunner } from '../commandrunner.ts';
 import { authKey, urlPrefix } from '../testconfig.ts';
 
-import SwebDbModule, { Config } from "/client/swebdb.ts";
+import SwebDbModule, { Config } from "/client/database/swebdb.ts";
 import { openDb } from "/lib/database/mod.ts";
 
 // create a empty directory for test data

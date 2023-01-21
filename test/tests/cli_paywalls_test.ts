@@ -4,7 +4,7 @@ import * as path from '/deps/std/path/mod.ts';
 
 import { CommandRunner } from '/test/commandrunner.ts';
 import { urlPrefix, authKey, xPrv } from "/test/testconfig.ts";
-import { PaywallFile } from "../../lib/paywallfile.ts";
+import { PaywallFile } from "/lib/paywallfile.ts";
 
 // create a empty directory for test data
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
@@ -26,25 +26,25 @@ await cmd.run(
     '--xprv', xPrv
 );
 {
-    const result = await cmd.run(execPath, 'paywalls', 'add', '/docs/', '5000', 'deez', '--sitePath', sitePath);
+    const result = await cmd.run(execPath, 'add-paywall', '/docs/', '5000', 'deez', '--sitePath', sitePath);
     assertEquals(result.status.success, true);
     assertEquals(result.status.code, 0);
     assertEquals(result.stdErrText, '');
 }
 {
-    const result = await cmd.run(execPath, 'paywalls', 'add', '/docs/', '5001', 'nutz', '--sitePath', sitePath);
+    const result = await cmd.run(execPath, 'add-paywall', '/docs/', '5001', 'nutz', '--sitePath', sitePath);
     assertEquals(result.status.success, true);
     assertEquals(result.status.code, 0);
     assertEquals(result.stdErrText, '');
 }
 {
-    const result = await cmd.run(execPath, 'paywalls', 'add', '/docs2/test_file1.txt', '5001', 'files', '--sitePath', sitePath);
+    const result = await cmd.run(execPath, 'add-paywall', '/docs2/test_file1.txt', '5001', 'files', '--sitePath', sitePath);
     assertEquals(result.status.success, true);
     assertEquals(result.status.code, 0);
     assertEquals(result.stdErrText, '');
 }
 {
-    const result = await cmd.run(execPath, 'paywalls', 'add', '/docs2/test_file1.txt', '5002', 'files', '--sitePath', sitePath);
+    const result = await cmd.run(execPath, 'add-paywall', '/docs2/test_file1.txt', '5002', 'files', '--sitePath', sitePath);
     assertEquals(result.status.success, true);
     assertEquals(result.status.code, 0);
     assertEquals(result.stdErrText, '');
@@ -68,7 +68,7 @@ await cmd.run(
     });
 }
 {
-    const result = await cmd.run(execPath, 'paywalls', 'remove', '/docs2/test_file1.txt', '2', '--sitePath', sitePath);
+    const result = await cmd.run(execPath, 'remove-paywall', '/docs2/test_file1.txt', '2', '--sitePath', sitePath);
     assertEquals(result.status.success, true);
     assertEquals(result.status.code, 0);
     assertEquals(result.stdErrText, '');
@@ -91,7 +91,7 @@ await cmd.run(
     })
 }
 {
-    const result = await cmd.run(execPath, 'paywalls', 'remove', '/docs', 'a', '--sitePath', sitePath);
+    const result = await cmd.run(execPath, 'remove-paywall', '/docs', 'a', '--sitePath', sitePath);
     assertEquals(result.status.success, true);
     assertEquals(result.status.code, 0);
     assertEquals(result.stdErrText, '');

@@ -1,6 +1,6 @@
 import * as commander from "npm:commander";
 import * as path from "/deps/std/path/mod.ts";
-import { bufferToHex } from "/deps/hextools/src/buffer_to_hex.ts";
+import { Buffer } from "/deps/std/node/buffer.ts";
 import bsv from "npm:bsv";
 
 import SwebDbModule, { SwebDbApi } from "/client/database/swebdb.ts";
@@ -18,9 +18,7 @@ export interface ServerFileRow {
 
 export function validateAuthKey (value:string) {
     if (value === 'r') {
-        const buf = new Uint8Array(32);
-        crypto.getRandomValues(buf);
-        value = bufferToHex(buf)
+        value = crypto.getRandomValues(Buffer.alloc(32)).toString('hex');
     } else if (value && !/^(?:[a-f0-9]{2}){5,32}$/.test(value)) {
         throw new commander.InvalidArgumentError('Not a hex string 10-64 chars');
     }

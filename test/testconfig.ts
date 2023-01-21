@@ -8,6 +8,7 @@ export const testConfig:Config = {
         port: 8098,
         hostname: '127.0.0.1'
     },
+    logErrors: true,
     workers: [],
     cookieSecret: ['devsecret'],
     sitePath: './test/site2',

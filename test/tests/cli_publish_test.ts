@@ -1,6 +1,7 @@
 import { copySync, emptyDirSync } from '/deps/std/fs/mod.ts';
 import { assertEquals, assertStringIncludes } from '/deps/std/testing/asserts.ts';
 import * as path from '/deps/std/path/mod.ts';
+import { Buffer } from "/deps/std/node/buffer.ts";
 
 import { sha256hex } from "/lib/hash.ts";
 import { serveSite } from "/server/servesite.ts";
@@ -10,6 +11,7 @@ import { testConfig, urlPrefix, authKey, xPrv } from "/test/testconfig.ts";
 import { CookyFetch } from '/test/cookyfetch.ts';
 
 import { CommandRunner } from '../commandrunner.ts';
+
 
 // create a empty directory for test data
 const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
@@ -34,7 +36,7 @@ try {
 } catch { /** */ }
 
 const siteDb = appState.openSiteDb();
-siteDb.meta.setValue('$.config.authKeyHash', sha256hex(authKey));
+siteDb.meta.setValue('$.config.authKeyHash', sha256hex(Buffer.from(authKey,'hex')));
 
 // add data which will need to be deleted/renamed on publish
 siteDb.files.upsertFile({
@@ -69,7 +71,7 @@ try {
         '--xprv', xPrv
     );
 
-    await cmd.run(execPath, 'reindex', '--server', '--sitePath', sitePathLocal);
+    await cmd.run(execPath, 'reindex-files', '--server', '--sitePath', sitePathLocal);
     const result = await cmd.run(execPath, 'publish', '--sitePath', sitePathLocal);
 
     //console.log(result.status);

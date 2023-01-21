@@ -1,5 +1,5 @@
 import * as path from '/deps/std/path/mod.ts';
-import { hexToBuffer } from "/deps/hextools/mod.ts";
+import { Buffer } from "/deps/std/node/buffer.ts";
 
 import { serveSite } from "/server/servesite.ts";
 import { AppState } from "/server/appstate.ts";
@@ -44,7 +44,7 @@ if (import.meta.main) {
     }
 
     if (config.initAuthKey) {
-        appState.openSiteDb().meta.setValue('$.config.authKeyHash', sha256hex(new Uint8Array(hexToBuffer(config.initAuthKey))));
+        appState.openSiteDb().meta.setValue('$.config.authKeyHash', sha256hex(Buffer.from(config.initAuthKey,'hex')));
     }
 
     if (config.workers && config.workers.length > 0) {

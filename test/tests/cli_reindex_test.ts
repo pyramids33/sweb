@@ -29,7 +29,7 @@ Deno.writeTextFileSync(path.join(sitePath, 'docs/test_file3.txt'), 'updated blah
 copySync(path.join(__dirname, '../data/example/docs/index.html'), path.join(sitePath, 'docs/index.html'), { overwrite: true });
 Deno.removeSync(path.join(sitePath, 'docs/test_file2.txt'));
 
-const result = await cmd.run(execPath, 'reindex', '--local', '--sitePath', sitePath);
+const result = await cmd.run(execPath, 'reindex-files', '--local', '--sitePath', sitePath);
 
 // console.log(result.status);
 // console.log(result.stdErrText);

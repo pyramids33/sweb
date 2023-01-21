@@ -1,16 +1,18 @@
 import { copySync, emptyDirSync } from '/deps/std/fs/mod.ts';
 import { assertEquals, assertStringIncludes } from '/deps/std/testing/asserts.ts';
 import * as path from '/deps/std/path/mod.ts';
+import { Buffer } from '/deps/std/node/buffer.ts';
 
 import { sha256hex } from "/lib/hash.ts";
 import { serveSite } from "/server/servesite.ts";
 import { AppState } from "/server/appstate.ts";
 
 import { testConfig, urlPrefix, authKey, xPrv } from "/test/testconfig.ts";
+import { CookyFetch } from "/test/cookyfetch.ts";
 
 import { CommandRunner } from '../commandrunner.ts';
 import { ApiClient } from "/client/apiclient.ts";
-import SwebDbModule from "/client/swebdb.ts";
+import SwebDbModule from "/client/database/swebdb.ts";
 
 import { openDb } from "/lib/database/mod.ts";
 
@@ -40,12 +42,12 @@ copySync(path.join(__dirname, '../data/getpayments_sessions'),
     path.join(sitePathServer,'sessions'), { overwrite: true });
 
 const siteDb = appState.openSiteDb();
-siteDb.meta.setValue('$.config.authKeyHash', sha256hex(authKey));
+siteDb.meta.setValue('$.config.authKeyHash', sha256hex(Buffer.from(authKey,'hex')));
 
 const serverClosed = serveSite(appState, { abortSignal: abortController.signal });
 const apiClient = new ApiClient(urlPrefix, authKey, abortController.signal);
 
-import {CookyFetch} from "../cookyfetch.ts";
+
 
 try {
 
@@ -59,12 +61,12 @@ try {
     }
     {
         const cwdRelativePath = path.join(__dirname, '../data/paywalls.json');
-        const res = await apiClient.files.upload(cwdRelativePath, '/paywalls.json')
+        const res = await apiClient.uploadFile(cwdRelativePath, '/paywalls.json')
         await res.text();
     }
     {
         const cwdRelativePath = path.join(__dirname, '../data/xpub.txt');
-        const res = await apiClient.files.upload(cwdRelativePath, '/xpub.txt')
+        const res = await apiClient.uploadFile(cwdRelativePath, '/xpub.txt')
         await res.text();
     }
 
@@ -111,7 +113,7 @@ try {
         assertEquals(siteDb.invoices.listInvoices().length, 3);
     }
     {
-        const result = await cmd.run(execPath, 'getpayments', '--sitePath', sitePathLocal);
+        const result = await cmd.run(execPath, 'get-payments', '--sitePath', sitePathLocal);
         assertEquals(result.status.success, true);
         assertEquals(result.status.code, 0);
         assertEquals(result.stdErrText, '');

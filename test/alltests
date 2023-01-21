@@ -1,0 +1,13 @@
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+deno run --allow-all --unstable  ./tests/cli_init_test.ts
+deno run --allow-all --unstable  ./tests/cli_sitemap_test.ts
+deno run --allow-all --unstable  ./tests/cli_reindex_test.ts
+deno run --allow-all --unstable  ./tests/cli_publish_test.ts
+deno run --allow-all --unstable  ./tests/cli_paywalls_test.ts
+deno run --allow-all --unstable  ./tests/cli_redeem_test.ts
+deno run --allow-all --unstable  ./tests/server_createsite_test.ts
+deno run --allow-all --unstable  ./tests/server_emptysite_test.ts
+deno run --allow-all --unstable  ./tests/server_paywall_test.ts
+deno run --allow-all --unstable  ./tests/getpayments_test.ts
+deno run --allow-all --unstable  ./tests/paywall_test.ts
+deno run --allow-all --unstable  ./tests/metadb_test.ts
