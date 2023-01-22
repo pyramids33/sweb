@@ -1,3 +1,4 @@
+// got a seg fault, something to do with sqlite3 ffi
 //await import("./tests/getpayments_test.ts")
 await import("./tests/cli_init_test.ts")
 await import("./tests/cli_sitemap_test.ts")
