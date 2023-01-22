@@ -2,6 +2,8 @@
 # $web
 ### Micro-payment Web Server
 
+https://sweb.lol
+
 Deno 1.29.3
 
 ## Sweb Server
