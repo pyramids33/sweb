@@ -153,7 +153,9 @@ Use sweb client to:
 - Download and redeem payments
 
 ```
-# Link command
+# Link command 
+# allow-all unstable is required due to sqlite3 library
+
 # deno install --allow-all --unstable -n sweb ./client/main.ts
 
 Usage: sweb [options] [command]
