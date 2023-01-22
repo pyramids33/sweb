@@ -224,7 +224,7 @@ sitePath> sweb show-files --db
 
 # add paywall
 sitePath> sweb add-paywall /myfiles 5000
-sitePath> sweb show-paywalls /myfiles 5000
+sitePath> sweb show-paywalls
 
 # publish
 sitePath> sweb publish
