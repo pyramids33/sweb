@@ -234,7 +234,7 @@ sitePath> sweb get-payments
 sitePath> sweb show-balance
 
 # transfer the funds to your main wallet
-sitePath> sweb redeem-funds -d -p --address <bitcoinAddress>
+sitePath> sweb redeem-funds -b -p --address <bitcoinAddress>
 
 # show payments details
 sitePath> sweb show-payments
