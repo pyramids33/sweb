@@ -23,7 +23,7 @@ See https://deno.land/ for details
 #### 2. Install Sweb Code
 Download the sweb source code.    
 ```
-git clone https://github.com/pyramids33/sweb ./swebsrc
+git clone https://github.com/pyramids33/sweb ./swebsrc 
 ```
 
 #### 3. Make a directory for your site
