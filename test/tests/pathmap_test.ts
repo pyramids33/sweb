@@ -29,5 +29,9 @@ const examplePath = path.join(__dirname, '../data/example')
     const fileRow3 = await pathMapper.mapPath('/test/mypath2/docs2');
     assertEquals(fileRow3, undefined);
 }
-
+{
+    const pathMapper = new PathMapper([{ urlPrefix: '/', pathPrefix: examplePath }]);
+    const fileRow = await pathMapper.mapPath('/docs/index.html');
+    assertEquals(fileRow?.storagePath, path.join(examplePath, '/docs/index.html'));
+}
 console.log(testName, 'passed')

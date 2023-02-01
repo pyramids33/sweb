@@ -11,3 +11,4 @@ deno run --allow-all --unstable  ./tests/server_paywall_test.ts
 deno run --allow-all --unstable  ./tests/getpayments_test.ts
 deno run --allow-all --unstable  ./tests/paywall_test.ts
 deno run --allow-all --unstable  ./tests/metadb_test.ts
+deno run --allow-all --unstable  ./tests/pathmap_test.ts

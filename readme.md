@@ -84,6 +84,11 @@ sudo certbot certonly --nginx -d example.com
     // optional dir of customer static files
     "staticPath": undefined,
 
+    // map urls to file system paths (read only)
+    "mappedPaths": [
+        { urlPrefix: "/mapped/", "pathPrefix": "/home/user/files/" }
+    ],
+
     // your domain name
     "domain": "yourdomain.com",
 
