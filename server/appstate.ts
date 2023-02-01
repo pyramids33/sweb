@@ -211,10 +211,15 @@ export class AppState {
 
     closeDbs () {
         this.#siteDb?.db.close();
+        this.#siteDb = undefined;
+
         this.#countersDb?.db.close();
+        this.#countersDb = undefined;
+        
         for (const [_,value] of Object.entries(this.#sessionDbCache)) {
             value.db.db.close();
         }
+        this.#sessionDbCache = {};
     }
 }
 
