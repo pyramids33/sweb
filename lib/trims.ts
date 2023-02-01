@@ -13,11 +13,11 @@ export function trims (theString:string, { prefix, suffix, both }:TrimStringOpti
     let endPos = theString.length;
 
     if (prefix) {
-        while (theString.startsWith(prefix, startPos)) { startPos++; }
+        while (theString.startsWith(prefix, startPos)) { startPos += prefix.length; }
     }
 
     if (suffix) {
-        while (theString.endsWith(suffix, endPos)) { endPos--; }
+        while (theString.endsWith(suffix, endPos)) { endPos -= suffix.length; }
     }
 
     return theString.slice(startPos, endPos);

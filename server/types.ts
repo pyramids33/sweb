@@ -16,6 +16,7 @@ export interface Config {
     logErrors?:boolean
     sitePath: string
     staticPath?: string
+    mappedPaths?: { urlPrefix:string, pathPrefix: string }[]
     domain: string 
     ensureDirs?: boolean
     initAuthKey?: string

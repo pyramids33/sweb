@@ -6,6 +6,8 @@ import { Context, Router } from "/deps/oak/mod.ts";
 import { readWriteSessionHeaders, hasSession, checkSession } from "/server/middleware/session.ts";
 import { RequestState } from "/server/appstate.ts";
 import mstime from "/lib/mstime.ts";
+import { PathMapper } from "/server/pathmapper.ts";
+
 
 export function getContentRouter () : Router<RequestState> {
 
@@ -33,7 +35,23 @@ export function getContentRouter () : Router<RequestState> {
             return;
         }
 
-        let fileRow = siteDb.files.fileRow(ctx.request.url.pathname);
+        let fileRow;
+
+        if (config.mappedPaths) {
+            const pathMapper = new PathMapper(config.mappedPaths);
+            fileRow = await pathMapper.mapPath(ctx.request.url.pathname);
+            if (fileRow === undefined) {
+                fileRow = await pathMapper.mapPath(ctx.request.url.pathname + '/');
+                if (fileRow) {
+                    ctx.response.redirect(ctx.request.url.pathname + '/');
+                    return;
+                }
+            }
+        } 
+        
+        if (fileRow === undefined) {
+            fileRow = siteDb.files.fileRow(ctx.request.url.pathname);
+        }
 
         if (fileRow === undefined) {
             fileRow = siteDb.files.fileRow(ctx.request.url.pathname + '/');
@@ -46,7 +64,6 @@ export function getContentRouter () : Router<RequestState> {
                 return;
             }
         }
-
 
         const paywallFile = await app.getPaywallFile();
         const matchResult = paywallFile.matchUrl(ctx.request.url.pathname);
