@@ -4,7 +4,7 @@
 
 https://sweb.lol
 
-Deno 1.29.3
+Deno 1.30.2
 
 ## Sweb Server
 Use Sweb Server to:
