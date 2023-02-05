@@ -5,8 +5,8 @@
         "npm:bsv": "npm:bsv@2.0.10",
         "npm:commander": "npm:commander@10.0.0",
         "/deps/oak/": "https://deno.land/x/oak@v11.1.0/",
-        "/deps/std/": "https://deno.land/std@0.172.0/",
-        "/deps/sqlite3/": "https://deno.land/x/sqlite3@0.7.2/",
+        "/deps/std/": "https://deno.land/std@0.176.0/",
+        "/deps/sqlite3/": "https://deno.land/x/sqlite3@0.7.3/",
         "/": "./",
         "./": "./"
     }
