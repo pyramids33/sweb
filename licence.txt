@@ -1,2 +1,2 @@
 personal use only
-bsv licence
+must use bsv
